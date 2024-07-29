@@ -52,9 +52,9 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	for _, logType := range logTypes {
 		logName := fmt.Sprintf("projects/%s/logs/cloudaudit.googleapis.com%s%s", projectID, "%2f", logType)
 		sourceEnrichmentFields := &enrichment.CommonFields{
-			TpConnection: logName,
+			TpConnection: projectID,
 		}
-		// TODO: #paging fetch startTime/lastInsertId from paging state per bucket (logName)
+		// TODO: #paging fetch startTime/lastInsertId from paging state
 		tempStartTime := time.Now().Add(-time.Hour * 24)
 		startTime = &tempStartTime
 		lastInsertId := "0"
@@ -84,10 +84,12 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 					return fmt.Errorf("error processing row: %w", err)
 				}
 
-				// TODO: #paging update startTime/lastInsertId in paging state for the bucket
+				// TODO: #paging update startTime/lastInsertId in paging state
 			}
 
 		}
 	}
+
+	_ = s.OnRow(ctx, &artifact.ArtifactData{}, nil) // TODO: #finish remove this once fix in place
 	return nil
 }

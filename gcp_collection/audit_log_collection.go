@@ -3,15 +3,16 @@ package gcp_collection
 import (
 	"context"
 	"fmt"
-	"github.com/rs/xid"
-	"github.com/turbot/tailpipe-plugin-sdk/helpers"
 	"time"
 
 	"cloud.google.com/go/logging"
+	"github.com/rs/xid"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_source"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
 	"github.com/turbot/tailpipe-plugin-sdk/collection"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
+	"github.com/turbot/tailpipe-plugin-sdk/helpers"
+	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
 )
 
@@ -37,13 +38,16 @@ func (c *AuditLogCollection) GetConfigSchema() any {
 	return &gcp_types.AuditLogCollectionConfig{}
 }
 
-func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error {
-	fmt.Println("GCP Collection Init") // TODO: #debug remove
+func (c *AuditLogCollection) GetPagingDataSchema() (paging.Data, error) {
+	return paging.NewStorageBucket(), nil // TODO: #paging implement paging - using this to bypass requirement
+}
 
+func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error {
 	// TODO: #config use actual configuration (& validate, etc)
-	tmpPath := "~/gcp/tailpipe-creds.json"
+	tmpPath := "/Users/graza/gcp/tailpipe-creds.json"
 	config := &gcp_types.AuditLogCollectionConfig{
 		Credentials: &tmpPath,
+		Project:     "parker-aaa",
 	}
 
 	c.Config = config
@@ -63,7 +67,8 @@ func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichme
 
 	record := &gcp_types.AuditLogRow{
 		CommonFields: *sourceEnrichmentFields,
-		Entry:        item,
+		Timestamp:    item.Timestamp,
+		LogName:      item.LogName,
 	}
 
 	// Record standardization
