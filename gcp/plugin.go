@@ -1,6 +1,9 @@
 package gcp
 
-import "github.com/turbot/tailpipe-plugin-sdk/plugin"
+import (
+	"github.com/turbot/tailpipe-plugin-gcp/gcp_collection"
+	"github.com/turbot/tailpipe-plugin-sdk/plugin"
+)
 
 type Plugin struct {
 	plugin.Base
@@ -9,7 +12,7 @@ type Plugin struct {
 func NewPlugin() (plugin.TailpipePlugin, error) {
 	p := &Plugin{}
 
-	err := p.RegisterCollections() // TODO: Register collections
+	err := p.RegisterCollections(gcp_collection.NewAuditLogCollection)
 	if err != nil {
 		return nil, err
 	}
