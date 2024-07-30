@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
@@ -80,7 +81,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 					Data:     *logEntry,
 					Metadata: sourceEnrichmentFields,
 				}
-				if err := s.OnRow(ctx, row, nil); err != nil {
+				if err := s.OnRow(ctx, row, nil); err != nil { // TODO: #paging add paging data
 					return fmt.Errorf("error processing row: %w", err)
 				}
 
@@ -90,6 +91,10 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		}
 	}
 
-	_ = s.OnRow(ctx, &artifact.ArtifactData{}, nil) // TODO: #finish remove this once fix in place
+	//_ = s.OnRow(ctx, &artifact.ArtifactData{}, nil) // TODO: #finish remove this once fix in place
 	return nil
+}
+
+func (s *AuditLogAPISource) GetPagingData() paging.Data {
+	return nil // TODO: #paging implement paging
 }
