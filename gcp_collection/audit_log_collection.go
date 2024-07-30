@@ -40,7 +40,7 @@ func (c *AuditLogCollection) GetConfigSchema() any {
 }
 
 func (c *AuditLogCollection) GetPagingDataSchema() (paging.Data, error) {
-	return paging.NewStorageBucket(), nil // TODO: #paging implement paging - using this to bypass requirement
+	return gcp_source.NewAuditLogApiPaging(), nil
 }
 
 func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error {
@@ -64,7 +64,7 @@ func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichme
 		return nil, fmt.Errorf("invalid row type: %T, expected logging.Entry", row)
 	}
 
-	payload, ok := item.Payload.(audit.AuditLog)
+	payload, ok := item.Payload.(*audit.AuditLog)
 	if !ok {
 		return nil, fmt.Errorf("invalid payload type: %T, expected *audit.AuditLog", item.Payload)
 	}
@@ -89,12 +89,22 @@ func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichme
 	record.ServiceName = payload.ServiceName
 	record.MethodName = payload.MethodName
 	record.ResourceName = payload.ResourceName
-	record.StatusCode = &payload.Status.Code
-	record.StatusMessage = &payload.Status.Message
+
+	if payload.Status != nil {
+		record.StatusCode = &payload.Status.Code
+		record.StatusMessage = &payload.Status.Message
+	}
 
 	if item.Resource != nil {
 		record.ResourceType = &item.Resource.Type
-		record.ResourceLabels = &item.Resource.Labels
+		//record.ResourceLabels = &item.Resource.Labels // TODO: #finish add back in once we have support for map
+	}
+
+	if item.Operation != nil {
+		record.OperationId = &item.Operation.Id
+		record.OperationProducer = &item.Operation.Producer
+		record.OperationFirst = &item.Operation.First
+		record.OperationLast = &item.Operation.Last
 	}
 
 	if payload.AuthenticationInfo != nil {
@@ -109,7 +119,7 @@ func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichme
 		record.RequestCallerSuppliedUserAgent = &payload.RequestMetadata.CallerSuppliedUserAgent
 	}
 
-	// TODO: #finish payload.Request is a struct which has `Fields` property of map[string]*Value - how to handle? (common keys: @type / name)
+	// TODO: #finish payload.Request is a struct which has `Fields` property of map[string]*Value - how to handle? (common keys: @type / name - but this can literally contain anything!)
 	// TODO: #finish payload.AuthorizationInfo is an array of structs with Resource (string), Permission (string), and Granted (bool) properties, seems to mostly be a single item but could be more - best way to handle?
 
 	// Hive Fields

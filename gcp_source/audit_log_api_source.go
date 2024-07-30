@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact"
+	"github.com/turbot/tailpipe-plugin-sdk/context_values"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
+	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"google.golang.org/api/iterator"
@@ -20,13 +21,14 @@ import (
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
 	row_source.Base
-
+	paging AuditLogApiPaging
 	Config *gcp_types.AuditLogCollectionConfig
 }
 
 func NewAuditLogAPISource(config *gcp_types.AuditLogCollectionConfig) plugin.RowSource {
 	return &AuditLogAPISource{
 		Config: config,
+		paging: *NewAuditLogApiPaging(),
 	}
 }
 
@@ -35,10 +37,13 @@ func (s *AuditLogAPISource) Identifier() string {
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
+	pg, hasPaging := context_values.PagingDataFromContext[*AuditLogApiPaging](ctx)
+	if hasPaging {
+		s.paging = *pg
+	}
 	var opts []option.ClientOption
 	projectID := s.Config.Project
 	logTypes := []string{"activity", "data_access", "system_event", "policy"}
-	var startTime *time.Time
 
 	if s.Config.Credentials != nil {
 		opts = append(opts, option.WithCredentialsFile(*s.Config.Credentials))
@@ -51,14 +56,24 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	defer client.Close()
 
 	for _, logType := range logTypes {
+		var startTime *time.Time
+		lastInsertId := "0"
+
+		if pagingEntry, ok := s.paging.AuditLogTypes[logType]; ok {
+			startTime = &pagingEntry.Timestamp
+			lastInsertId = pagingEntry.LastInsertedId
+		}
+
 		logName := fmt.Sprintf("projects/%s/logs/cloudaudit.googleapis.com%s%s", projectID, "%2f", logType)
 		sourceEnrichmentFields := &enrichment.CommonFields{
 			TpConnection: projectID,
 		}
-		// TODO: #paging fetch startTime/lastInsertId from paging state
-		tempStartTime := time.Now().Add(-time.Hour * 24)
-		startTime = &tempStartTime
-		lastInsertId := "0"
+
+		// TODO: #finish figure out how to determine an appropriate start time if paging doesn't provide one
+		if startTime == nil {
+			tempTime := time.Now().Add(-time.Hour * 12)
+			startTime = &tempTime
+		}
 
 		filter := fmt.Sprintf(`logName="%s"`, logName)
 		if startTime != nil {
@@ -66,6 +81,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 			filter += fmt.Sprintf(` AND (timestamp > "%s" OR (timestamp = "%s" AND insertId>"%s"))`, st, st, lastInsertId)
 		}
 
+		// TODO: #ratelimit implement rate limiting - see https://pkg.go.dev/google.golang.org/api/option#RateLimiter
 		it := client.Entries(ctx, logadmin.Filter(filter))
 		for {
 			logEntry, err := it.Next()
@@ -81,20 +97,20 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 					Data:     *logEntry,
 					Metadata: sourceEnrichmentFields,
 				}
-				if err := s.OnRow(ctx, row, nil); err != nil { // TODO: #paging add paging data
+
+				s.paging.Add(logType, *NewAuditLogApiPagingEntry(logEntry.Timestamp, logEntry.InsertID))
+
+				if err := s.OnRow(ctx, row, &s.paging); err != nil {
 					return fmt.Errorf("error processing row: %w", err)
 				}
-
-				// TODO: #paging update startTime/lastInsertId in paging state
 			}
 
 		}
 	}
 
-	//_ = s.OnRow(ctx, &artifact.ArtifactData{}, nil) // TODO: #finish remove this once fix in place
 	return nil
 }
 
 func (s *AuditLogAPISource) GetPagingData() paging.Data {
-	return nil // TODO: #paging implement paging
+	return &s.paging
 }

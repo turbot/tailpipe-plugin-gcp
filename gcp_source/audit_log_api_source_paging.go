@@ -25,7 +25,9 @@ type AuditLogApiPaging struct {
 }
 
 func NewAuditLogApiPaging() *AuditLogApiPaging {
-	return &AuditLogApiPaging{}
+	return &AuditLogApiPaging{
+		AuditLogTypes: make(map[string]AuditLogApiPagingEntry),
+	}
 }
 
 func (a *AuditLogApiPaging) Update(data paging.Data) error {
