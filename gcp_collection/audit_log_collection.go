@@ -49,6 +49,7 @@ func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error 
 	config := &gcp_types.AuditLogCollectionConfig{
 		Credentials: &tmpPath,
 		Project:     "parker-aaa",
+		LogTypes:    []string{"activity", "data_access", "system_event"},
 	}
 
 	c.Config = config

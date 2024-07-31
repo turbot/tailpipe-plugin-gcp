@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
@@ -37,14 +38,18 @@ func (s *AuditLogAPISource) Identifier() string {
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
+	// TODO: #validation validate the configuration
+
 	pg, hasPaging := context_values.PagingDataFromContext[*AuditLogApiPaging](ctx)
 	if hasPaging {
 		s.paging = *pg
 	}
-	var opts []option.ClientOption
-	projectID := s.Config.Project
-	logTypes := []string{"activity", "data_access", "system_event", "policy"}
 
+	startTime := s.paging.Timestamp
+	projectID := s.Config.Project
+	logTypes := s.Config.LogTypes
+
+	var opts []option.ClientOption
 	if s.Config.Credentials != nil {
 		opts = append(opts, option.WithCredentialsFile(*s.Config.Credentials))
 	}
@@ -55,56 +60,43 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 	defer client.Close()
 
-	for _, logType := range logTypes {
-		var startTime *time.Time
-		lastInsertId := "0"
+	// TODO: #finish figure out how to determine an appropriate start time if paging doesn't provide one
+	if startTime == nil {
+		tempTime := time.Now().Add(-time.Hour * 24)
+		startTime = &tempTime
+	}
 
-		if pagingEntry, ok := s.paging.AuditLogTypes[logType]; ok {
-			startTime = &pagingEntry.Timestamp
-			lastInsertId = pagingEntry.LastInsertedId
+	sourceEnrichmentFields := &enrichment.CommonFields{
+		TpConnection: projectID,
+		// TODO: #finish determine if we can establish more source enrichment fields
+	}
+
+	filter := s.getLogNameFilter(projectID, logTypes)
+	if startTime != nil {
+		filter += fmt.Sprintf(` AND (timestamp > "%s")`, startTime.Format(time.RFC3339))
+	}
+
+	// TODO: #ratelimit implement rate limiting
+	it := client.Entries(ctx, logadmin.Filter(filter))
+	for {
+		logEntry, err := it.Next()
+		if err != nil && errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error fetching log entries, %w", err)
 		}
 
-		logName := fmt.Sprintf("projects/%s/logs/cloudaudit.googleapis.com%s%s", projectID, "%2f", logType)
-		sourceEnrichmentFields := &enrichment.CommonFields{
-			TpConnection: projectID,
-		}
-
-		// TODO: #finish figure out how to determine an appropriate start time if paging doesn't provide one
-		if startTime == nil {
-			tempTime := time.Now().Add(-time.Hour * 12)
-			startTime = &tempTime
-		}
-
-		filter := fmt.Sprintf(`logName="%s"`, logName)
-		if startTime != nil {
-			st := startTime.Format(time.RFC3339)
-			filter += fmt.Sprintf(` AND (timestamp > "%s" OR (timestamp = "%s" AND insertId>"%s"))`, st, st, lastInsertId)
-		}
-
-		// TODO: #ratelimit implement rate limiting
-		it := client.Entries(ctx, logadmin.Filter(filter))
-		for {
-			logEntry, err := it.Next()
-			if err != nil && errors.Is(err, iterator.Done) {
-				break
+		if logEntry != nil {
+			row := &artifact.ArtifactData{
+				Data:     *logEntry,
+				Metadata: sourceEnrichmentFields,
 			}
-			if err != nil {
-				return fmt.Errorf("error fetching log entries, %w", err)
+			s.paging.Timestamp = &logEntry.Timestamp
+
+			if err := s.OnRow(ctx, row, &s.paging); err != nil {
+				return fmt.Errorf("error processing row: %w", err)
 			}
-
-			if logEntry != nil {
-				row := &artifact.ArtifactData{
-					Data:     *logEntry,
-					Metadata: sourceEnrichmentFields,
-				}
-
-				s.paging.Add(logType, *NewAuditLogApiPagingEntry(logEntry.Timestamp, logEntry.InsertID))
-
-				if err := s.OnRow(ctx, row, &s.paging); err != nil {
-					return fmt.Errorf("error processing row: %w", err)
-				}
-			}
-
 		}
 	}
 
@@ -113,4 +105,36 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 
 func (s *AuditLogAPISource) GetPagingData() paging.Data {
 	return &s.paging
+}
+
+func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string) string {
+	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
+	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
+	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
+
+	// short-circuit default
+	if len(logTypes) == 0 {
+		return fmt.Sprintf("logName=(%s OR %s OR %s)", activity, dataAccess, systemEvent)
+	}
+
+	var selected []string
+	for _, logType := range logTypes {
+		switch logType {
+		case "activity":
+			selected = append(selected, activity)
+		case "data_access":
+			selected = append(selected, dataAccess)
+		case "system_event":
+			selected = append(selected, systemEvent)
+		}
+	}
+
+	switch len(selected) {
+	case 0: // TODO: #error do we throw an error instead of returning default options here?
+		return fmt.Sprintf("logName=(%s OR %s OR %s)", activity, dataAccess, systemEvent)
+	case 1:
+		return fmt.Sprintf("logName=%s", selected[0])
+	default:
+		return fmt.Sprintf("logName=(%s)", strings.Join(selected, " OR "))
+	}
 }
