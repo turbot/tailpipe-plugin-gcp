@@ -81,7 +81,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 			filter += fmt.Sprintf(` AND (timestamp > "%s" OR (timestamp = "%s" AND insertId>"%s"))`, st, st, lastInsertId)
 		}
 
-		// TODO: #ratelimit implement rate limiting - see https://pkg.go.dev/google.golang.org/api/option#RateLimiter
+		// TODO: #ratelimit implement rate limiting
 		it := client.Entries(ctx, logadmin.Filter(filter))
 		for {
 			logEntry, err := it.Next()
