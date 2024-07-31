@@ -73,7 +73,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 
 	filter := s.getLogNameFilter(projectID, logTypes)
 	if startTime != nil {
-		filter += fmt.Sprintf(` AND (timestamp > "%s")`, startTime.Format(time.RFC3339))
+		filter += fmt.Sprintf(` AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 	}
 
 	// TODO: #ratelimit implement rate limiting
