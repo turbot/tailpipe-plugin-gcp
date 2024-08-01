@@ -15,7 +15,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-const AuditLogAPISourceIdentifier = "pipes_audit_log_api_source"
+const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
 
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
