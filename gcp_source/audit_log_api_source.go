@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"strings"
 	"time"
 
@@ -28,6 +29,10 @@ func NewAuditLogAPISource() row_source.RowSource {
 
 func (s *AuditLogAPISource) Identifier() string {
 	return AuditLogAPISourceIdentifier
+}
+
+func (s *AuditLogAPISource) GetPagingDataSchema() paging.Data {
+	return NewAuditLogApiPaging()
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {

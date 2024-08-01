@@ -7,22 +7,14 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/rs/xid"
-	"github.com/turbot/tailpipe-plugin-gcp/gcp_source"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
 	"github.com/turbot/tailpipe-plugin-sdk/collection"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/helpers"
-	"github.com/turbot/tailpipe-plugin-sdk/paging"
 )
 
 type AuditLogCollection struct {
 	collection.CollectionBase[AuditLogCollectionConfig]
-}
-
-func (c *AuditLogCollection) SupportedSources() []string {
-	return []string{
-		gcp_source.AuditLogAPISourceIdentifier,
-	}
 }
 
 func NewAuditLogCollection() collection.Collection {
@@ -35,10 +27,6 @@ func (c *AuditLogCollection) Identifier() string {
 
 func (c *AuditLogCollection) GetRowSchema() any {
 	return gcp_types.AuditLogRow{}
-}
-
-func (c *AuditLogCollection) GetPagingDataSchema() (paging.Data, error) {
-	return gcp_source.NewAuditLogApiPaging(), nil
 }
 
 // TODO  #graza ensure config is passed through from CLI
