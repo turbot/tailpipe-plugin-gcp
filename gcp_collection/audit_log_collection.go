@@ -15,7 +15,7 @@ import (
 )
 
 type AuditLogCollection struct {
-	collection.CollectionBase[AuditLogCollectionConfig]
+	collection.CollectionBase[*AuditLogCollectionConfig]
 }
 
 func NewAuditLogCollection() collection.Collection {
