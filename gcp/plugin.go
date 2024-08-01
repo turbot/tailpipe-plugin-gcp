@@ -1,6 +1,11 @@
 package gcp
 
-import "github.com/turbot/tailpipe-plugin-sdk/plugin"
+import (
+	"time"
+
+	"github.com/turbot/tailpipe-plugin-gcp/gcp_collection"
+	"github.com/turbot/tailpipe-plugin-sdk/plugin"
+)
 
 type Plugin struct {
 	plugin.Base
@@ -8,8 +13,8 @@ type Plugin struct {
 
 func NewPlugin() (plugin.TailpipePlugin, error) {
 	p := &Plugin{}
-
-	err := p.RegisterCollections() // TODO: Register collections
+	time.Sleep(10 * time.Second) // TODO: #debug remove this
+	err := p.RegisterCollections(gcp_collection.NewAuditLogCollection)
 	if err != nil {
 		return nil, err
 	}
