@@ -2,6 +2,7 @@ package gcp_collection
 
 import (
 	"fmt"
+	"github.com/turbot/tailpipe-plugin-sdk/hcl"
 	"google.golang.org/genproto/googleapis/cloud/audit"
 	"time"
 
@@ -27,6 +28,10 @@ func (c *AuditLogCollection) Identifier() string {
 
 func (c *AuditLogCollection) GetRowSchema() any {
 	return gcp_types.AuditLogRow{}
+}
+
+func (c *AuditLogCollection) GetConfigSchema() hcl.Config {
+	return &AuditLogCollectionConfig{}
 }
 
 // TODO  #graza ensure config is passed through from CLI

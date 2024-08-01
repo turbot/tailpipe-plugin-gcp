@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/turbot/tailpipe-plugin-sdk/hcl"
 	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"strings"
 	"time"
@@ -20,7 +21,7 @@ const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
 
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
-	row_source.RowSourceBase[AuditLogAPISourceConfig]
+	row_source.RowSourceBase[*AuditLogAPISourceConfig]
 }
 
 func NewAuditLogAPISource() row_source.RowSource {
@@ -33,6 +34,10 @@ func (s *AuditLogAPISource) Identifier() string {
 
 func (s *AuditLogAPISource) GetPagingDataSchema() paging.Data {
 	return NewAuditLogApiPaging()
+}
+
+func (c *AuditLogAPISource) GetConfigSchema() hcl.Config {
+	return &AuditLogAPISourceConfig{}
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {

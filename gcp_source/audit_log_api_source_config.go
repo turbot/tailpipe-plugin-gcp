@@ -6,7 +6,8 @@ type AuditLogAPISourceConfig struct {
 	LogTypes    []string `hcl:"log_types"`
 }
 
-func (a AuditLogAPISourceConfig) Validate() error {
+func (a *AuditLogAPISourceConfig) Validate() error {
 	//TODO #graza implement me
+
 	return nil
 }
