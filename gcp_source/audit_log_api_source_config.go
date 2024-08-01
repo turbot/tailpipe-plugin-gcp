@@ -1,9 +1,9 @@
 package gcp_source
 
 type AuditLogAPISourceConfig struct {
-	Credentials *string
-	Project     string
-	LogTypes    []string
+	Credentials *string  `hcl:"credentials"`
+	Project     string   `hcl:"project"`
+	LogTypes    []string `hcl:"log_types"`
 }
 
 func (a AuditLogAPISourceConfig) Validate() error {
