@@ -32,7 +32,9 @@ func (s *AuditLogAPISource) Identifier() string {
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	// TODO: #validation validate the configuration
-
+	if s.PagingData == nil {
+		s.PagingData = &AuditLogApiPaging{}
+	}
 	paging := s.PagingData.(*AuditLogApiPaging)
 
 	startTime := paging.Timestamp
