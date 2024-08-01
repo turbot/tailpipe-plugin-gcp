@@ -8,44 +8,34 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
-	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
-	"github.com/turbot/tailpipe-plugin-sdk/artifact"
-	"github.com/turbot/tailpipe-plugin-sdk/context_values"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
-	"github.com/turbot/tailpipe-plugin-sdk/paging"
-	"github.com/turbot/tailpipe-plugin-sdk/plugin"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
+const AuditLogAPISourceIdentifier = "pipes_audit_log_api_source"
+
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
-	row_source.Base
-	paging AuditLogApiPaging
-	Config *gcp_types.AuditLogCollectionConfig
+	row_source.RowSourceBase[AuditLogAPISourceConfig]
 }
 
-func NewAuditLogAPISource(config *gcp_types.AuditLogCollectionConfig) plugin.RowSource {
-	return &AuditLogAPISource{
-		Config: config,
-		paging: *NewAuditLogApiPaging(),
-	}
+func NewAuditLogAPISource() row_source.RowSource {
+	return &AuditLogAPISource{}
 }
 
 func (s *AuditLogAPISource) Identifier() string {
-	return "gcp_audit_log_api_source"
+	return AuditLogAPISourceIdentifier
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	// TODO: #validation validate the configuration
 
-	pg, hasPaging := context_values.PagingDataFromContext[*AuditLogApiPaging](ctx)
-	if hasPaging {
-		s.paging = *pg
-	}
+	paging := s.PagingData.(*AuditLogApiPaging)
 
-	startTime := s.paging.Timestamp
+	startTime := paging.Timestamp
 	projectID := s.Config.Project
 	logTypes := s.Config.LogTypes
 
@@ -88,23 +78,19 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry != nil {
-			row := &artifact.ArtifactData{
+			row := &types.RowData{
 				Data:     *logEntry,
 				Metadata: sourceEnrichmentFields,
 			}
-			s.paging.Timestamp = &logEntry.Timestamp
+			paging.Timestamp = &logEntry.Timestamp
 
-			if err := s.OnRow(ctx, row, &s.paging); err != nil {
+			if err := s.OnRow(ctx, row, paging); err != nil {
 				return fmt.Errorf("error processing row: %w", err)
 			}
 		}
 	}
 
 	return nil
-}
-
-func (s *AuditLogAPISource) GetPagingData() paging.Data {
-	return &s.paging
 }
 
 func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string) string {

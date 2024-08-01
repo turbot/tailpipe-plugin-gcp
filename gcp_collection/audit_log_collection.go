@@ -1,7 +1,6 @@
 package gcp_collection
 
 import (
-	"context"
 	"fmt"
 	"google.golang.org/genproto/googleapis/cloud/audit"
 	"time"
@@ -14,16 +13,19 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/helpers"
 	"github.com/turbot/tailpipe-plugin-sdk/paging"
-	"github.com/turbot/tailpipe-plugin-sdk/plugin"
 )
 
 type AuditLogCollection struct {
-	collection.Base
-
-	Config *gcp_types.AuditLogCollectionConfig
+	collection.CollectionBase[AuditLogCollectionConfig]
 }
 
-func NewAuditLogCollection() plugin.Collection {
+func (c *AuditLogCollection) SupportedSources() []string {
+	return []string{
+		gcp_source.AuditLogAPISourceIdentifier,
+	}
+}
+
+func NewAuditLogCollection() collection.Collection {
 	return &AuditLogCollection{}
 }
 
@@ -35,29 +37,26 @@ func (c *AuditLogCollection) GetRowSchema() any {
 	return gcp_types.AuditLogRow{}
 }
 
-func (c *AuditLogCollection) GetConfigSchema() any {
-	return &gcp_types.AuditLogCollectionConfig{}
-}
-
 func (c *AuditLogCollection) GetPagingDataSchema() (paging.Data, error) {
 	return gcp_source.NewAuditLogApiPaging(), nil
 }
 
-func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error {
-	// TODO: #config use actual configuration (& validate, etc)
-	tmpPath := "/Users/graza/gcp/tailpipe-creds.json"
-	config := &gcp_types.AuditLogCollectionConfig{
-		Credentials: &tmpPath,
-		Project:     "parker-aaa",
-		LogTypes:    []string{"activity", "data_access", "system_event"},
-	}
-
-	c.Config = config
-
-	// TODO: #config create source from config
-	source := gcp_source.NewAuditLogAPISource(config)
-	return c.AddSource(source)
-}
+// TODO  #graza ensure config is passed through from CLI
+//func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error {
+//	// TODO: #config use actual configuration (& validate, etc)
+//	tmpPath := "/Users/graza/gcp/tailpipe-creds.json"
+//	config := &gcp_types.AuditLogCollectionConfig{
+//		Credentials: &tmpPath,
+//		Project:     "parker-aaa",
+//		LogTypes:    []string{"activity", "data_access", "system_event"},
+//	}
+//
+//	c.Config = config
+//
+//	// TODO: #config create source from config
+//	source := gcp_source.NewAuditLogAPISource(config)
+//	return c.AddSource(source)
+//}
 
 func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichment.CommonFields) (any, error) {
 	item, ok := row.(logging.Entry)

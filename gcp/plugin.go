@@ -1,20 +1,26 @@
 package gcp
 
 import (
-	"time"
-
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_collection"
+	"github.com/turbot/tailpipe-plugin-gcp/gcp_source"
+	"github.com/turbot/tailpipe-plugin-sdk/collection"
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
+	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 )
 
 type Plugin struct {
-	plugin.Base
+	plugin.PluginBase
 }
 
 func NewPlugin() (plugin.TailpipePlugin, error) {
 	p := &Plugin{}
-	time.Sleep(10 * time.Second) // TODO: #debug remove this
-	err := p.RegisterCollections(gcp_collection.NewAuditLogCollection)
+
+	err := p.RegisterResources(
+		&plugin.ResourceFunctions{
+			Collections: []func() collection.Collection{gcp_collection.NewAuditLogCollection},
+			Sources:     []func() row_source.RowSource{gcp_source.NewAuditLogAPISource},
+		})
+
 	if err != nil {
 		return nil, err
 	}
