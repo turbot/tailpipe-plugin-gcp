@@ -8,6 +8,7 @@ import (
 )
 
 type AuditLogApiPaging struct {
+	paging.PagingBase
 	Timestamp *time.Time `json:"timestamp"`
 }
 

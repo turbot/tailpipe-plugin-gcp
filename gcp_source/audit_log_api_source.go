@@ -2,15 +2,16 @@ package gcp_source
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/turbot/tailpipe-plugin-sdk/hcl"
-	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
+	"github.com/turbot/tailpipe-plugin-sdk/hcl"
+	"github.com/turbot/tailpipe-plugin-sdk/paging"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
 	"google.golang.org/api/iterator"
@@ -36,7 +37,7 @@ func (s *AuditLogAPISource) GetPagingDataSchema() paging.Data {
 	return NewAuditLogApiPaging()
 }
 
-func (c *AuditLogAPISource) GetConfigSchema() hcl.Config {
+func (s *AuditLogAPISource) GetConfigSchema() hcl.Config {
 	return &AuditLogAPISourceConfig{}
 }
 
@@ -96,7 +97,12 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 			}
 			paging.Timestamp = &logEntry.Timestamp
 
-			if err := s.OnRow(ctx, row, paging); err != nil {
+			pagingData, err := s.getPagingDataJSON()
+			if err != nil {
+				return fmt.Errorf("error serialising paging data: %w", err)
+			}
+
+			if err := s.OnRow(ctx, row, pagingData); err != nil {
 				return fmt.Errorf("error processing row: %w", err)
 			}
 		}
@@ -135,4 +141,18 @@ func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string
 	default:
 		return fmt.Sprintf("logName=(%s)", strings.Join(selected, " OR "))
 	}
+}
+
+func (s *AuditLogAPISource) getPagingDataJSON() (json.RawMessage, error) {
+	if s.PagingData == nil {
+		return nil, nil
+	}
+
+	// NOTE: lock the paging data to ensure it is not modified while we are serialising it
+	mut := s.PagingData.GetMut()
+	mut.RLock()
+	defer mut.RUnlock()
+
+	return json.Marshal(s.PagingData)
+
 }
