@@ -34,23 +34,6 @@ func (c *AuditLogCollection) GetConfigSchema() hcl.Config {
 	return &AuditLogCollectionConfig{}
 }
 
-// TODO  #graza ensure config is passed through from CLI
-//func (c *AuditLogCollection) Init(ctx context.Context, configData []byte) error {
-//	// TODO: #config use actual configuration (& validate, etc)
-//	tmpPath := "/Users/graza/gcp/tailpipe-creds.json"
-//	config := &gcp_types.AuditLogCollectionConfig{
-//		Credentials: &tmpPath,
-//		Project:     "parker-aaa",
-//		LogTypes:    []string{"activity", "data_access", "system_event"},
-//	}
-//
-//	c.Config = config
-//
-//	// TODO: #config create source from config
-//	source := gcp_source.NewAuditLogAPISource(config)
-//	return c.AddSource(source)
-//}
-
 func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichment.CommonFields) (any, error) {
 	item, ok := row.(logging.Entry)
 	if !ok {
