@@ -1,28 +1,16 @@
 package gcp_source
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/turbot/tailpipe-plugin-sdk/paging"
+	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
 )
 
-type AuditLogApiPaging struct {
-	paging.PagingBase
+type AuditLogApiCollectionState struct {
+	collection_state.CollectionStateBase
 	Timestamp *time.Time `json:"timestamp"`
 }
 
-func NewAuditLogApiPaging() *AuditLogApiPaging {
-	return &AuditLogApiPaging{}
-}
-
-func (a *AuditLogApiPaging) Update(data paging.Data) error {
-	other, ok := data.(*AuditLogApiPaging)
-	if !ok {
-		return fmt.Errorf("cannot update AuditLogApi paging data with %T", data)
-	}
-	if other.Timestamp != nil {
-		a.Timestamp = other.Timestamp
-	}
-	return nil
+func NewAuditLogApiPaging() collection_state.CollectionState {
+	return &AuditLogApiCollectionState{}
 }

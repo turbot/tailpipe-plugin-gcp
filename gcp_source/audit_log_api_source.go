@@ -2,7 +2,6 @@ package gcp_source
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,8 +9,7 @@ import (
 
 	"cloud.google.com/go/logging/logadmin"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
-	"github.com/turbot/tailpipe-plugin-sdk/hcl"
-	"github.com/turbot/tailpipe-plugin-sdk/paging"
+	"github.com/turbot/tailpipe-plugin-sdk/parse"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
 	"google.golang.org/api/iterator"
@@ -29,26 +27,26 @@ func NewAuditLogAPISource() row_source.RowSource {
 	return &AuditLogAPISource{}
 }
 
+func (s *AuditLogAPISource) Init(ctx context.Context, configData *parse.Data, opts ...row_source.RowSourceOption) error {
+	// set the collection state ctor
+	s.SetCollectionStateFunc(NewAuditLogApiPaging)
+
+	// call base init
+	return s.RowSourceBase.Init(ctx, configData, opts...)
+}
+
 func (s *AuditLogAPISource) Identifier() string {
 	return AuditLogAPISourceIdentifier
 }
 
-func (s *AuditLogAPISource) GetPagingDataSchema() paging.Data {
-	return NewAuditLogApiPaging()
-}
-
-func (s *AuditLogAPISource) GetConfigSchema() hcl.Config {
+func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
 	return &AuditLogAPISourceConfig{}
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
-	// TODO: #validation validate the configuration
-	if s.PagingData == nil {
-		s.PagingData = &AuditLogApiPaging{}
-	}
-	paging := s.PagingData.(*AuditLogApiPaging)
+	collectionState := s.CollectionState.(*AuditLogApiCollectionState)
 
-	startTime := paging.Timestamp
+	startTime := collectionState.Timestamp
 	projectID := s.Config.Project
 	logTypes := s.Config.LogTypes
 
@@ -63,14 +61,14 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 	defer client.Close()
 
-	// TODO: #finish figure out how to determine an appropriate start time if paging doesn't provide one
+	// TODO: #config figure out how to determine an appropriate start time if collectionState doesn't provide one
 	if startTime == nil {
 		tempTime := time.Now().Add(-time.Hour * 24)
 		startTime = &tempTime
 	}
 
 	sourceEnrichmentFields := &enrichment.CommonFields{
-		TpConnection: projectID,
+		TpIndex: projectID,
 		// TODO: #finish determine if we can establish more source enrichment fields
 	}
 
@@ -95,14 +93,15 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 				Data:     *logEntry,
 				Metadata: sourceEnrichmentFields,
 			}
-			paging.Timestamp = &logEntry.Timestamp
+			// update collection state
+			collectionState.Timestamp = &logEntry.Timestamp
 
-			pagingData, err := s.getPagingDataJSON()
+			collectionStateJSON, err := s.GetCollectionStateJSON()
 			if err != nil {
-				return fmt.Errorf("error serialising paging data: %w", err)
+				return fmt.Errorf("error serialising collectionState data: %w", err)
 			}
 
-			if err := s.OnRow(ctx, row, pagingData); err != nil {
+			if err := s.OnRow(ctx, row, collectionStateJSON); err != nil {
 				return fmt.Errorf("error processing row: %w", err)
 			}
 		}
@@ -141,18 +140,4 @@ func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string
 	default:
 		return fmt.Sprintf("logName=(%s)", strings.Join(selected, " OR "))
 	}
-}
-
-func (s *AuditLogAPISource) getPagingDataJSON() (json.RawMessage, error) {
-	if s.PagingData == nil {
-		return nil, nil
-	}
-
-	// NOTE: lock the paging data to ensure it is not modified while we are serialising it
-	mut := s.PagingData.GetMut()
-	mut.RLock()
-	defer mut.RUnlock()
-
-	return json.Marshal(s.PagingData)
-
 }

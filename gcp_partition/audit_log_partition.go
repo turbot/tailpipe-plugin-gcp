@@ -1,40 +1,40 @@
-package gcp_collection
+package gcp_partition
 
 import (
 	"fmt"
-	"github.com/turbot/tailpipe-plugin-sdk/hcl"
-	"google.golang.org/genproto/googleapis/cloud/audit"
 	"time"
 
 	"cloud.google.com/go/logging"
 	"github.com/rs/xid"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
-	"github.com/turbot/tailpipe-plugin-sdk/collection"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/helpers"
+	"github.com/turbot/tailpipe-plugin-sdk/parse"
+	"github.com/turbot/tailpipe-plugin-sdk/partition"
+	"google.golang.org/genproto/googleapis/cloud/audit"
 )
 
-type AuditLogCollection struct {
-	collection.CollectionBase[*AuditLogCollectionConfig]
+type AuditLogPartition struct {
+	partition.PartitionBase[*AuditLogPartitionConfig]
 }
 
-func NewAuditLogCollection() collection.Collection {
-	return &AuditLogCollection{}
+func NewAuditLogCollection() partition.Partition {
+	return &AuditLogPartition{}
 }
 
-func (c *AuditLogCollection) Identifier() string {
+func (c *AuditLogPartition) Identifier() string {
 	return "gcp_audit_log"
 }
 
-func (c *AuditLogCollection) GetRowSchema() any {
+func (c *AuditLogPartition) GetRowSchema() any {
 	return gcp_types.AuditLogRow{}
 }
 
-func (c *AuditLogCollection) GetConfigSchema() hcl.Config {
-	return &AuditLogCollectionConfig{}
+func (c *AuditLogPartition) GetConfigSchema() parse.Config {
+	return &AuditLogPartitionConfig{}
 }
 
-func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichment.CommonFields) (any, error) {
+func (c *AuditLogPartition) EnrichRow(row any, sourceEnrichmentFields *enrichment.CommonFields) (any, error) {
 	item, ok := row.(logging.Entry)
 	if !ok {
 		return nil, fmt.Errorf("invalid row type: %T, expected logging.Entry", row)
@@ -45,7 +45,7 @@ func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichme
 		return nil, fmt.Errorf("invalid payload type: %T, expected *audit.AuditLog", item.Payload)
 	}
 
-	if sourceEnrichmentFields == nil || sourceEnrichmentFields.TpConnection == "" {
+	if sourceEnrichmentFields == nil || sourceEnrichmentFields.TpIndex == "" {
 		return nil, fmt.Errorf("source must provide connection in sourceEnrichmentFields")
 	}
 
@@ -99,7 +99,7 @@ func (c *AuditLogCollection) EnrichRow(row any, sourceEnrichmentFields *enrichme
 	// TODO: #finish payload.AuthorizationInfo is an array of structs with Resource (string), Permission (string), and Granted (bool) properties, seems to mostly be a single item but could be more - best way to handle?
 
 	// Hive Fields
-	record.TpCollection = "gcp_audit_log"
+	record.TpPartition = "gcp_audit_log"
 	record.TpYear = int32(item.Timestamp.Year())
 	record.TpMonth = int32(item.Timestamp.Month())
 	record.TpDay = int32(item.Timestamp.Day())
