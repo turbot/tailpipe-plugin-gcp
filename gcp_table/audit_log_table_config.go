@@ -1,9 +1,9 @@
-package gcp_partition
+package gcp_table
 
-type AuditLogPartitionConfig struct {
+type AuditLogTableConfig struct {
 }
 
-func (a *AuditLogPartitionConfig) Validate() error {
+func (a *AuditLogTableConfig) Validate() error {
 	//TODO #graza implement me
 	// NOTE if this needs to mutate the object,use a pointer receiver
 	return nil

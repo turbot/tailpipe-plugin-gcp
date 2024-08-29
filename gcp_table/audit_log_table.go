@@ -1,4 +1,4 @@
-package gcp_partition
+package gcp_table
 
 import (
 	"fmt"
@@ -10,31 +10,31 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/helpers"
 	"github.com/turbot/tailpipe-plugin-sdk/parse"
-	"github.com/turbot/tailpipe-plugin-sdk/partition"
+	"github.com/turbot/tailpipe-plugin-sdk/table"
 	"google.golang.org/genproto/googleapis/cloud/audit"
 )
 
-type AuditLogPartition struct {
-	partition.PartitionBase[*AuditLogPartitionConfig]
+type AuditLogTable struct {
+	table.TableBase[*AuditLogTableConfig]
 }
 
-func NewAuditLogCollection() partition.Partition {
-	return &AuditLogPartition{}
+func NewAuditLogCollection() table.Table {
+	return &AuditLogTable{}
 }
 
-func (c *AuditLogPartition) Identifier() string {
+func (c *AuditLogTable) Identifier() string {
 	return "gcp_audit_log"
 }
 
-func (c *AuditLogPartition) GetRowSchema() any {
+func (c *AuditLogTable) GetRowSchema() any {
 	return gcp_types.AuditLogRow{}
 }
 
-func (c *AuditLogPartition) GetConfigSchema() parse.Config {
-	return &AuditLogPartitionConfig{}
+func (c *AuditLogTable) GetConfigSchema() parse.Config {
+	return &AuditLogTableConfig{}
 }
 
-func (c *AuditLogPartition) EnrichRow(row any, sourceEnrichmentFields *enrichment.CommonFields) (any, error) {
+func (c *AuditLogTable) EnrichRow(row any, sourceEnrichmentFields *enrichment.CommonFields) (any, error) {
 	item, ok := row.(logging.Entry)
 	if !ok {
 		return nil, fmt.Errorf("invalid row type: %T, expected logging.Entry", row)
@@ -99,7 +99,7 @@ func (c *AuditLogPartition) EnrichRow(row any, sourceEnrichmentFields *enrichmen
 	// TODO: #finish payload.AuthorizationInfo is an array of structs with Resource (string), Permission (string), and Granted (bool) properties, seems to mostly be a single item but could be more - best way to handle?
 
 	// Hive Fields
-	record.TpPartition = "gcp_audit_log"
+	record.TpTable = "gcp_audit_log"
 	record.TpYear = int32(item.Timestamp.Year())
 	record.TpMonth = int32(item.Timestamp.Month())
 	record.TpDay = int32(item.Timestamp.Day())
