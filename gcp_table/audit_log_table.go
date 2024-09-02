@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"cloud.google.com/go/logging"
 	"github.com/rs/xid"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
