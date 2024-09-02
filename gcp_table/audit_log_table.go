@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"cloud.google.com/go/logging"
 	"github.com/rs/xid"
 	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
@@ -99,7 +98,7 @@ func (c *AuditLogTable) EnrichRow(row any, sourceEnrichmentFields *enrichment.Co
 	// TODO: #finish payload.AuthorizationInfo is an array of structs with Resource (string), Permission (string), and Granted (bool) properties, seems to mostly be a single item but could be more - best way to handle?
 
 	// Hive Fields
-	record.TpTable = "gcp_audit_log"
+	record.TpPartition = "gcp_audit_log"
 	record.TpYear = int32(item.Timestamp.Year())
 	record.TpMonth = int32(item.Timestamp.Month())
 	record.TpDay = int32(item.Timestamp.Day())
