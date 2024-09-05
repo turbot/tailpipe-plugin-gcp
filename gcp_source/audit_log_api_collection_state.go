@@ -15,8 +15,12 @@ type AuditLogAPICollectionState struct {
 	prevTime time.Time `json:"-"`
 }
 
-func NewAuditLogApiPaging() collection_state.CollectionState {
+func NewAuditLogApiPaging() collection_state.CollectionState[*AuditLogAPISourceConfig] {
 	return &AuditLogAPICollectionState{}
+}
+
+func (s *AuditLogAPICollectionState) Init(*AuditLogAPISourceConfig) error {
+	return nil
 }
 
 func (s *AuditLogAPICollectionState) IsEmpty() bool {
