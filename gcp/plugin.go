@@ -6,6 +6,7 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
+	"time"
 )
 
 type Plugin struct {
@@ -15,6 +16,7 @@ type Plugin struct {
 func NewPlugin() (plugin.TailpipePlugin, error) {
 	p := &Plugin{}
 
+	time.Sleep(10 * time.Second)
 	err := p.RegisterResources(
 		&plugin.ResourceFunctions{
 			Tables:  []func() table.Table{gcp_table.NewAuditLogCollection},

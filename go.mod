@@ -116,6 +116,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
+	github.com/oras-project/oras-credentials-go v0.3.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -140,7 +141,6 @@ require (
 	github.com/tkrajina/go-reflector v0.5.6 // indirect
 	github.com/turbot/go-kit v0.10.0-rc.0 // indirect
 	github.com/turbot/pipe-fittings v1.4.1 // indirect
-	github.com/turbot/pipes-sdk-go v0.9.1 // indirect
 	github.com/turbot/steampipe-plugin-code v0.7.0 // indirect
 	github.com/turbot/terraform-components v0.0.0-20231108031935-358f803c1a8b // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect

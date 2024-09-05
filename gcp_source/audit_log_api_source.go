@@ -45,7 +45,6 @@ func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	collectionState := s.CollectionState.(*AuditLogAPICollectionState)
-	collectionState.StartCollection() // sets previous state to current state as we manipulate the current state
 
 	startTime := collectionState.EndTime
 	projectID := s.Config.Project
@@ -86,11 +85,6 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry != nil {
-			// check if we've hit previous item - return false if we have, return from function
-			if !collectionState.ShouldCollectRow(logEntry.Timestamp) {
-				return nil
-			}
-
 			row := &types.RowData{
 				Data:     *logEntry,
 				Metadata: sourceEnrichmentFields,

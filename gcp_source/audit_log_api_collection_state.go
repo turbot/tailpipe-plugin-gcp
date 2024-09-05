@@ -11,8 +11,6 @@ type AuditLogAPICollectionState struct {
 
 	StartTime time.Time `json:"start_time,omitempty"` // oldest record timestamp
 	EndTime   time.Time `json:"end_time,omitempty"`   // newest record timestamp
-
-	prevTime time.Time `json:"-"`
 }
 
 func NewAuditLogApiPaging() collection_state.CollectionState[*AuditLogAPISourceConfig] {
@@ -35,17 +33,4 @@ func (s *AuditLogAPICollectionState) Upsert(ts time.Time) {
 	if s.EndTime.IsZero() || ts.After(s.EndTime) {
 		s.EndTime = ts
 	}
-}
-
-// StartCollection stores the current state as previous state
-func (s *AuditLogAPICollectionState) StartCollection() {
-	s.prevTime = s.EndTime
-}
-
-func (s *AuditLogAPICollectionState) ShouldCollectRow(ts time.Time) bool {
-	if !s.prevTime.IsZero() && ts.Equal(s.prevTime) {
-		return false
-	}
-
-	return true
 }
