@@ -45,6 +45,7 @@ func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	collectionState := s.CollectionState.(*AuditLogAPICollectionState)
+	collectionState.StartCollection() // sets previous state to current state as we manipulate the current state
 
 	startTime := collectionState.EndTime
 	projectID := s.Config.Project
@@ -71,10 +72,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		// TODO: #finish determine if we can establish more source enrichment fields
 	}
 
-	filter := s.getLogNameFilter(projectID, logTypes)
-	if !startTime.IsZero() {
-		filter += fmt.Sprintf(` AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
-	}
+	filter := s.getLogNameFilter(projectID, logTypes, startTime)
 
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter))
@@ -88,6 +86,11 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry != nil {
+			// check if we've hit previous item - return false if we have, return from function
+			if !collectionState.ShouldCollectRow(logEntry.Timestamp) {
+				return nil
+			}
+
 			row := &types.RowData{
 				Data:     *logEntry,
 				Metadata: sourceEnrichmentFields,
@@ -109,14 +112,15 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	return nil
 }
 
-func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string) string {
+func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
 	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
 	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
 	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
+	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 
 	// short-circuit default
 	if len(logTypes) == 0 {
-		return fmt.Sprintf("logName=(%s OR %s OR %s)", activity, dataAccess, systemEvent)
+		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
 	}
 
 	var selected []string
@@ -133,10 +137,10 @@ func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string
 
 	switch len(selected) {
 	case 0: // TODO: #error do we throw an error instead of returning default options here?
-		return fmt.Sprintf("logName=(%s OR %s OR %s)", activity, dataAccess, systemEvent)
+		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
 	case 1:
-		return fmt.Sprintf("logName=%s", selected[0])
+		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
 	default:
-		return fmt.Sprintf("logName=(%s)", strings.Join(selected, " OR "))
+		return fmt.Sprintf("logName=(%s) %s", strings.Join(selected, " OR "), timePart)
 	}
 }
