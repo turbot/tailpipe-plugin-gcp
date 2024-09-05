@@ -44,9 +44,9 @@ func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
-	collectionState := s.CollectionState.(*AuditLogApiCollectionState)
+	collectionState := s.CollectionState.(*AuditLogAPICollectionState)
 
-	startTime := collectionState.Timestamp
+	startTime := collectionState.EndTime
 	projectID := s.Config.Project
 	logTypes := s.Config.LogTypes
 
@@ -61,10 +61,9 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 	defer client.Close()
 
-	// TODO: #config figure out how to determine an appropriate start time if collectionState doesn't provide one
-	if startTime == nil {
-		tempTime := time.Now().Add(-time.Hour * 24)
-		startTime = &tempTime
+	// TODO: #config figure out how to determine an appropriate start time if collectionState doesn't provide one, defaulting to 30 days in meantime
+	if startTime.IsZero() {
+		startTime = time.Now().Add(-720 * time.Hour)
 	}
 
 	sourceEnrichmentFields := &enrichment.CommonFields{
@@ -73,7 +72,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 
 	filter := s.getLogNameFilter(projectID, logTypes)
-	if startTime != nil {
+	if !startTime.IsZero() {
 		filter += fmt.Sprintf(` AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 	}
 
@@ -93,9 +92,9 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 				Data:     *logEntry,
 				Metadata: sourceEnrichmentFields,
 			}
-			// update collection state
-			collectionState.Timestamp = &logEntry.Timestamp
 
+			// update collection state
+			collectionState.Upsert(logEntry.Timestamp)
 			collectionStateJSON, err := s.GetCollectionStateJSON()
 			if err != nil {
 				return fmt.Errorf("error serialising collectionState data: %w", err)
