@@ -100,9 +100,7 @@ func (c *AuditLogTable) EnrichRow(row any, sourceEnrichmentFields *enrichment.Co
 
 	// Hive Fields
 	record.TpPartition = "gcp_audit_log"
-	record.TpYear = int32(item.Timestamp.Year())
-	record.TpMonth = int32(item.Timestamp.Month())
-	record.TpDay = int32(item.Timestamp.Day())
+	record.TpDate = item.Timestamp.Format("2006-01-02")
 
 	return record, nil
 }
