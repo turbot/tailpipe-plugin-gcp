@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
+	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/parse"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
@@ -29,7 +30,7 @@ func NewAuditLogAPISource() row_source.RowSource {
 
 func (s *AuditLogAPISource) Init(ctx context.Context, configData *parse.Data, opts ...row_source.RowSourceOption) error {
 	// set the collection state ctor
-	s.NewCollectionStateFunc = NewAuditLogApiPaging
+	s.NewCollectionStateFunc = collection_state.NewGenericCollectionState
 
 	// call base init
 	return s.RowSourceBase.Init(ctx, configData, opts...)
@@ -44,9 +45,12 @@ func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
-	collectionState := s.CollectionState.(*AuditLogAPICollectionState)
+	collectionState := s.CollectionState.(*collection_state.GenericCollectionState[*AuditLogAPISourceConfig])
+	// TODO: #config the below should be settable via a config option
+	collectionState.IsChronological = true
+	collectionState.HasContinuation = true
 
-	startTime := collectionState.EndTime
+	startTime := collectionState.GetLatestEndTime()
 	projectID := s.Config.Project
 	logTypes := s.Config.LogTypes
 
@@ -61,9 +65,10 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 	defer client.Close()
 
-	// TODO: #config figure out how to determine an appropriate start time if collectionState doesn't provide one, defaulting to 30 days in meantime
-	if startTime.IsZero() {
-		startTime = time.Now().Add(-720 * time.Hour)
+	if startTime == nil {
+		// TODO: #config figure out how to determine an appropriate start time if collectionState doesn't provide one, defaulting to 30 days in meantime
+		st := time.Now().Add(-720 * time.Hour)
+		startTime = &st
 	}
 
 	sourceEnrichmentFields := &enrichment.CommonFields{
@@ -71,7 +76,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		// TODO: #finish determine if we can establish more source enrichment fields
 	}
 
-	filter := s.getLogNameFilter(projectID, logTypes, startTime)
+	filter := s.getLogNameFilter(projectID, logTypes, *startTime)
 
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter))
@@ -85,20 +90,22 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry != nil {
-			row := &types.RowData{
-				Data:     *logEntry,
-				Metadata: sourceEnrichmentFields,
-			}
+			if collectionState.ShouldCollectRow(logEntry.Timestamp, logEntry.InsertID) {
+				row := &types.RowData{
+					Data:     *logEntry,
+					Metadata: sourceEnrichmentFields,
+				}
 
-			// update collection state
-			collectionState.Upsert(logEntry.Timestamp)
-			collectionStateJSON, err := s.GetCollectionStateJSON()
-			if err != nil {
-				return fmt.Errorf("error serialising collectionState data: %w", err)
-			}
+				// update collection state
+				collectionState.Upsert(logEntry.Timestamp, logEntry.InsertID, nil)
+				collectionStateJSON, err := s.GetCollectionStateJSON()
+				if err != nil {
+					return fmt.Errorf("error serialising collectionState data: %w", err)
+				}
 
-			if err := s.OnRow(ctx, row, collectionStateJSON); err != nil {
-				return fmt.Errorf("error processing row: %w", err)
+				if err := s.OnRow(ctx, row, collectionStateJSON); err != nil {
+					return fmt.Errorf("error processing row: %w", err)
+				}
 			}
 		}
 	}
