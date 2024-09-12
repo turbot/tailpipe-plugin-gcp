@@ -30,7 +30,7 @@ func NewAuditLogAPISource() row_source.RowSource {
 
 func (s *AuditLogAPISource) Init(ctx context.Context, configData *parse.Data, opts ...row_source.RowSourceOption) error {
 	// set the collection state ctor
-	s.NewCollectionStateFunc = collection_state.NewGenericCollectionState
+	s.NewCollectionStateFunc = collection_state.NewTimeRangeCollectionState
 
 	// call base init
 	return s.RowSourceBase.Init(ctx, configData, opts...)
@@ -45,7 +45,7 @@ func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
-	collectionState := s.CollectionState.(*collection_state.GenericCollectionState[*AuditLogAPISourceConfig])
+	collectionState := s.CollectionState.(*collection_state.TimeRangeCollectionState[*AuditLogAPISourceConfig])
 	// TODO: #config the below should be settable via a config option
 	collectionState.IsChronological = true
 	collectionState.HasContinuation = true
