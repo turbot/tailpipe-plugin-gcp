@@ -1,4 +1,4 @@
-package gcp_source
+package sources
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package gcp_table
+package tables
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/rs/xid"
-	"github.com/turbot/tailpipe-plugin-gcp/gcp_types"
+	"github.com/turbot/tailpipe-plugin-gcp/models"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/helpers"
 	"github.com/turbot/tailpipe-plugin-sdk/parse"
@@ -27,7 +27,7 @@ func (c *AuditLogTable) Identifier() string {
 }
 
 func (c *AuditLogTable) GetRowSchema() any {
-	return gcp_types.AuditLogRow{}
+	return models.AuditLog{}
 }
 
 func (c *AuditLogTable) GetConfigSchema() parse.Config {
@@ -49,7 +49,7 @@ func (c *AuditLogTable) EnrichRow(row any, sourceEnrichmentFields *enrichment.Co
 		return nil, fmt.Errorf("source must provide connection in sourceEnrichmentFields")
 	}
 
-	record := &gcp_types.AuditLogRow{CommonFields: *sourceEnrichmentFields}
+	record := &models.AuditLog{CommonFields: *sourceEnrichmentFields}
 
 	// Record Standardization
 	record.TpID = xid.New().String()

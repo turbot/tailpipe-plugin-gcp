@@ -1,4 +1,4 @@
-package gcp_source
+package sources
 
 type AuditLogAPISourceConfig struct {
 	Credentials *string  `hcl:"credentials"`

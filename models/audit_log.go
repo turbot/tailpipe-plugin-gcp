@@ -1,4 +1,4 @@
-package gcp_types
+package models
 
 import (
 	"time"
@@ -6,8 +6,8 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 )
 
-// AuditLogRow represents an enriched row ready for parquet writing
-type AuditLogRow struct {
+// AuditLog represents an enriched row ready for parquet writing
+type AuditLog struct {
 	// embed required enrichment fields
 	enrichment.CommonFields
 

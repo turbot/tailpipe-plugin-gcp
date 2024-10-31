@@ -1,4 +1,4 @@
-package gcp_table
+package tables
 
 type AuditLogTableConfig struct {
 }
