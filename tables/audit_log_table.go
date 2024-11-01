@@ -2,6 +2,7 @@ package tables
 
 import (
 	"fmt"
+	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -15,7 +16,7 @@ import (
 )
 
 type AuditLogTable struct {
-	table.TableBase[*AuditLogTableConfig]
+	table.TableBase[*AuditLogTableConfig, *config.GcpConnection]
 }
 
 func NewAuditLogCollection() table.Table {
