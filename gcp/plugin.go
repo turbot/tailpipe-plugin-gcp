@@ -1,6 +1,7 @@
 package gcp
 
 import (
+	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-gcp/sources"
 	"github.com/turbot/tailpipe-plugin-gcp/tables"
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
@@ -8,8 +9,14 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
+type Plugin struct {
+	plugin.PluginBase
+}
+
 func NewPlugin() (plugin.TailpipePlugin, error) {
-	p := plugin.NewPlugin("gcp")
+	p := &Plugin{
+		PluginBase: plugin.NewPluginBase("gcp", config.NewGcpConnection),
+	}
 
 	err := p.RegisterResources(
 		&plugin.ResourceFunctions{
