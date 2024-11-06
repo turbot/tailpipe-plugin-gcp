@@ -21,7 +21,7 @@ const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
 
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
-	row_source.RowSourceBase[*AuditLogAPISourceConfig]
+	row_source.RowSourceImpl[*AuditLogAPISourceConfig]
 }
 
 func NewAuditLogAPISource() row_source.RowSource {
@@ -33,7 +33,7 @@ func (s *AuditLogAPISource) Init(ctx context.Context, configData *types.ConfigDa
 	s.NewCollectionStateFunc = collection_state.NewTimeRangeCollectionState
 
 	// call base init
-	return s.RowSourceBase.Init(ctx, configData, opts...)
+	return s.RowSourceImpl.Init(ctx, configData, opts...)
 }
 
 func (s *AuditLogAPISource) Identifier() string {
@@ -77,7 +77,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 
 	filter := s.getLogNameFilter(projectID, logTypes, *startTime)
-
+	collectionState.StartCollection()
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter))
 	for {
@@ -109,6 +109,8 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 			}
 		}
 	}
+
+	collectionState.EndCollection()
 
 	return nil
 }
