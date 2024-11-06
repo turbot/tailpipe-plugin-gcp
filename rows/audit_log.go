@@ -1,4 +1,4 @@
-package models
+package rows
 
 import (
 	"time"
@@ -33,4 +33,8 @@ type AuditLog struct {
 	OperationFirst                 *bool   `json:"operation_first,omitempty"`
 	OperationLast                  *bool   `json:"operation_last,omitempty"`
 	// TODO: #finish add the rest of the fields
+}
+
+func NewAuditLog() *AuditLog {
+	return &AuditLog{}
 }
