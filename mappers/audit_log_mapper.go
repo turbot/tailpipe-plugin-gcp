@@ -42,29 +42,30 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) ([]*rows.AuditLog, error)
 		return nil, fmt.Errorf("expected logging.Entry, string or []byte, got %T", a)
 	}
 
-	item, ok := a.(logging.Entry)
-	if !ok {
-		return nil, fmt.Errorf("expected logging.Entry, got %T", a)
-	}
-
-	payload, ok := item.Payload.(*audit.AuditLog)
-	if !ok {
-		return nil, fmt.Errorf("invalid payload type: %T, expected *audit.AuditLog", item.Payload)
-	}
-
 	row := rows.NewAuditLog()
-
 	row.Timestamp = item.Timestamp
 	row.LogName = item.LogName
 	row.InsertId = item.InsertID
 	row.Severity = item.Severity.String()
-	row.ServiceName = payload.ServiceName
-	row.MethodName = payload.MethodName
-	row.ResourceName = payload.ResourceName
 
-	if payload.Status != nil {
-		row.StatusCode = &payload.Status.Code
-		row.StatusMessage = &payload.Status.Message
+	if payload, ok := item.Payload.(*audit.AuditLog); ok {
+		row.ServiceName = payload.ServiceName
+		row.MethodName = payload.MethodName
+		row.ResourceName = payload.ResourceName
+
+		if payload.Status != nil {
+			row.StatusCode = &payload.Status.Code
+			row.StatusMessage = &payload.Status.Message
+		}
+
+		if payload.AuthenticationInfo != nil {
+			row.AuthenticationPrincipal = &payload.AuthenticationInfo.PrincipalEmail
+		}
+
+		if payload.RequestMetadata != nil {
+			row.RequestCallerIp = &payload.RequestMetadata.CallerIp
+			row.RequestCallerSuppliedUserAgent = &payload.RequestMetadata.CallerSuppliedUserAgent
+		}
 	}
 
 	if item.Resource != nil {
@@ -77,15 +78,6 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) ([]*rows.AuditLog, error)
 		row.OperationProducer = &item.Operation.Producer
 		row.OperationFirst = &item.Operation.First
 		row.OperationLast = &item.Operation.Last
-	}
-
-	if payload.AuthenticationInfo != nil {
-		row.AuthenticationPrincipal = &payload.AuthenticationInfo.PrincipalEmail
-	}
-
-	if payload.RequestMetadata != nil {
-		row.RequestCallerIp = &payload.RequestMetadata.CallerIp
-		row.RequestCallerSuppliedUserAgent = &payload.RequestMetadata.CallerSuppliedUserAgent
 	}
 
 	if item.HTTPRequest != nil {
