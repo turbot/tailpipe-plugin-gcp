@@ -59,7 +59,6 @@ func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *en
 	row.TpID = xid.New().String()
 	row.TpTimestamp = helpers.UnixMillis(row.Timestamp.UnixNano() / int64(time.Millisecond))
 	row.TpIngestTimestamp = helpers.UnixMillis(time.Now().UnixNano() / int64(time.Millisecond))
-	row.TpPartition = "gcp_audit_log"
 	row.TpIndex = row.ServiceName // TODO: #finish determine more accurate index
 	row.TpDate = row.Timestamp.Format("2006-01-02")
 
