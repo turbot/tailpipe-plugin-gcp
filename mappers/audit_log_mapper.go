@@ -1,9 +1,11 @@
 package mappers
 
 import (
-	"cloud.google.com/go/logging"
 	"context"
+	"encoding/json"
 	"fmt"
+
+	"cloud.google.com/go/logging"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 	"google.golang.org/genproto/googleapis/cloud/audit"
@@ -21,6 +23,25 @@ func (m *AuditLogMapper) Identifier() string {
 }
 
 func (m *AuditLogMapper) Map(_ context.Context, a any) ([]*rows.AuditLog, error) {
+	var item logging.Entry
+
+	switch v := a.(type) {
+	case string:
+		err := json.Unmarshal([]byte(v), &item)
+		if err != nil {
+			return nil, err
+		}
+	case logging.Entry:
+		item = v
+	case []byte:
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("expected logging.Entry, string or []byte, got %T", a)
+	}
+
 	item, ok := a.(logging.Entry)
 	if !ok {
 		return nil, fmt.Errorf("expected logging.Entry, got %T", a)
@@ -65,6 +86,13 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) ([]*rows.AuditLog, error)
 	if payload.RequestMetadata != nil {
 		row.RequestCallerIp = &payload.RequestMetadata.CallerIp
 		row.RequestCallerSuppliedUserAgent = &payload.RequestMetadata.CallerSuppliedUserAgent
+	}
+
+	if item.HTTPRequest != nil {
+		row.RequestMethod = item.HTTPRequest.Request.Method
+		row.RequestSize = item.HTTPRequest.RequestSize
+		row.RequestStatus = item.HTTPRequest.Status
+		row.RequestResponseSize = item.HTTPRequest.ResponseSize
 	}
 
 	return []*rows.AuditLog{row}, nil

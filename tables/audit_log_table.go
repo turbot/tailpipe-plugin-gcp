@@ -9,6 +9,8 @@ import (
 	"github.com/turbot/tailpipe-plugin-gcp/mappers"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
+	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/helpers"
 	"github.com/turbot/tailpipe-plugin-sdk/parse"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
@@ -50,6 +52,12 @@ func (c *AuditLogTable) GetConfigSchema() parse.Config {
 	return &AuditLogTableConfig{}
 }
 
+func (c *AuditLogTable) GetSourceOptions(sourceType string) []row_source.RowSourceOption {
+	return []row_source.RowSourceOption{
+		artifact_source.WithRowPerLine(),
+	}
+}
+
 func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
 
 	if sourceEnrichmentFields != nil {
@@ -59,7 +67,7 @@ func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *en
 	row.TpID = xid.New().String()
 	row.TpTimestamp = helpers.UnixMillis(row.Timestamp.UnixNano() / int64(time.Millisecond))
 	row.TpIngestTimestamp = helpers.UnixMillis(time.Now().UnixNano() / int64(time.Millisecond))
-	row.TpIndex = row.ServiceName // TODO: #finish determine more accurate index
+	row.TpIndex = row.LogName
 	row.TpDate = row.Timestamp.Format("2006-01-02")
 
 	if row.AuthenticationPrincipal != nil {
