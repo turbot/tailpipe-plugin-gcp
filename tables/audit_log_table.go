@@ -67,7 +67,7 @@ func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *en
 	row.TpID = xid.New().String()
 	row.TpTimestamp = row.Timestamp
 	row.TpIngestTimestamp = time.Now()
-	row.TpIndex = "todo" // TODO: #figure out how to get an accountable identifier for the index
+	row.TpIndex = row.ServiceName
 	row.TpDate = row.Timestamp.Format("2006-01-02")
 
 	if row.AuthenticationPrincipal != nil {
