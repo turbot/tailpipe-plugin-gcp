@@ -1,5 +1,7 @@
 package sources
 
+import "fmt"
+
 type AuditLogAPISourceConfig struct {
 	Credentials *string  `hcl:"credentials"`
 	Project     string   `hcl:"project"`
@@ -7,7 +9,15 @@ type AuditLogAPISourceConfig struct {
 }
 
 func (a *AuditLogAPISourceConfig) Validate() error {
-	//TODO #graza implement me
+	if a.Project == "" {
+		return fmt.Errorf("project is required")
+	}
+	if len(a.LogTypes) == 0 {
+		return fmt.Errorf("log_types is required")
+	}
+	if a.Credentials == nil {
+		return fmt.Errorf("credentials is required")
+	}
 
 	return nil
 }

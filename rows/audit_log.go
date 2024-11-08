@@ -32,7 +32,10 @@ type AuditLog struct {
 	OperationProducer              *string `json:"operation_producer,omitempty"`
 	OperationFirst                 *bool   `json:"operation_first,omitempty"`
 	OperationLast                  *bool   `json:"operation_last,omitempty"`
-	// TODO: #finish add the rest of the fields
+	RequestMethod                  string  `json:"request_url,omitempty"`
+	RequestSize                    int64   `json:"request_size,omitempty"`
+	RequestStatus                  int   `json:"request_status,omitempty"`
+	RequestResponseSize            int64   `json:"request_response_size,omitempty"`
 }
 
 func NewAuditLog() *AuditLog {
