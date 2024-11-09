@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/turbot/tailpipe-plugin-sdk/config_data"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
@@ -50,10 +49,9 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	// TODO: #config the below should be settable via a config option
 	collectionState.IsChronological = true
 	collectionState.HasContinuation = true
-
 	startTime := collectionState.GetLatestEndTime()
 	projectID := s.Config.Project
-	logTypes := s.Config.LogTypes
+	logType := s.Config.LogType
 
 	var opts []option.ClientOption
 	if s.Config.Credentials != nil {
@@ -77,7 +75,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		// TODO: #finish determine if we can establish more source enrichment fields
 	}
 
-	filter := s.getLogNameFilter(projectID, logTypes, *startTime)
+	filter := s.getLogNameFilter(projectID, logType, *startTime)
 	collectionState.StartCollection()
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter))
@@ -116,35 +114,20 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	return nil
 }
 
-func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
+func (s *AuditLogAPISource) getLogNameFilter(projectId string, logType string, startTime time.Time) string {
 	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
 	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
 	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
 	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 
-	// short-circuit default
-	if len(logTypes) == 0 {
-		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
-	}
-
-	var selected []string
-	for _, logType := range logTypes {
 		switch logType {
 		case "activity":
-			selected = append(selected, activity)
+			return fmt.Sprintf("logName=%s %s", activity, timePart)
 		case "data_access":
-			selected = append(selected, dataAccess)
+			return fmt.Sprintf("logName=%s %s", dataAccess, timePart)
 		case "system_event":
-			selected = append(selected, systemEvent)
+			return fmt.Sprintf("logName=%s %s", systemEvent, timePart)
+		default:
+			return fmt.Sprintf("logName=%s %s", logType, timePart)
 		}
-	}
-
-	switch len(selected) {
-	case 0: // TODO: #error do we throw an error instead of returning default options here?
-		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
-	case 1:
-		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
-	default:
-		return fmt.Sprintf("logName=(%s) %s", strings.Join(selected, " OR "), timePart)
-	}
 }

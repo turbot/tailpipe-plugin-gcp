@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/rs/xid"
-
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-gcp/mappers"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
-	"github.com/turbot/tailpipe-plugin-sdk/parse"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
+	"github.com/turbot/tailpipe-plugin-sdk/helpers"
+	"github.com/turbot/tailpipe-plugin-sdk/parse"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
@@ -65,9 +65,9 @@ func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *en
 	}
 
 	row.TpID = xid.New().String()
-	row.TpTimestamp = row.Timestamp
-	row.TpIngestTimestamp = time.Now()
-	row.TpIndex = row.ServiceName
+	row.TpTimestamp = helpers.UnixMillis(row.Timestamp.UnixNano() / int64(time.Millisecond))
+	row.TpIngestTimestamp = helpers.UnixMillis(time.Now().UnixNano() / int64(time.Millisecond))
+	row.TpIndex = "todo" // TODO: #figure out how to get an accountable identifier for the index
 	row.TpDate = row.Timestamp.Format("2006-01-02")
 
 	if row.AuthenticationPrincipal != nil {
