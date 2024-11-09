@@ -26,7 +26,7 @@ func NewPlugin() (_ plugin.TailpipePlugin, err error) {
 	}
 
 	resources := &plugin.ResourceFunctions{
-		Tables:  []func() table.Table{tables.NewAuditLogTable, tables.NewStorageLogTable, tables.NewAuditActivityLogTable, tables.NewAuditDataAccessLogTable},
+		Tables:  []func() table.Table{tables.NewAuditLogTable, tables.NewStorageLogTable, tables.NewAuditActivityLogTable, tables.NewAuditDataAccessLogTable, tables.NewAuditSystemEventLogTable},
 		Sources: []func() row_source.RowSource{sources.NewAuditLogAPISource},
 	}
 

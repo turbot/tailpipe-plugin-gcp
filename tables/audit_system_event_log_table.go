@@ -18,15 +18,15 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
 
-type AuditDataAccessLogTable struct {
-	table.TableImpl[*rows.AuditDataAccessLog, *AuditDataAccessLogTableConfig, *config.GcpConnection]
+type AuditSystemEventLogTable struct {
+	table.TableImpl[*rows.AuditSystemEventLog, *AuditSystemEventLogTableConfig, *config.GcpConnection]
 }
 
-func NewAuditDataAccessLogTable() table.Table {
-	return &AuditDataAccessLogTable{}
+func NewAuditSystemEventLogTable() table.Table {
+	return &AuditSystemEventLogTable{}
 }
 
-func (c *AuditDataAccessLogTable) Init(ctx context.Context, connectionSchemaProvider table.ConnectionSchemaProvider, req *types.CollectRequest) error {
+func (c *AuditSystemEventLogTable) Init(ctx context.Context, connectionSchemaProvider table.ConnectionSchemaProvider, req *types.CollectRequest) error {
 	// call base init
 	if err := c.TableImpl.Init(ctx, connectionSchemaProvider, req); err != nil {
 		return err
@@ -36,29 +36,29 @@ func (c *AuditDataAccessLogTable) Init(ctx context.Context, connectionSchemaProv
 	return nil
 }
 
-func (c *AuditDataAccessLogTable) initMapper() {
+func (c *AuditSystemEventLogTable) initMapper() {
 	// TODO switch on source
-	c.Mapper = mappers.NewAuditDataAccessLogMapper()
+	c.Mapper = mappers.NewAuditSystemEventLogMapper()
 }
 
-func (c *AuditDataAccessLogTable) Identifier() string {
-	return "gcp_audit_data_access_log"
+func (c *AuditSystemEventLogTable) Identifier() string {
+	return "gcp_audit_system_event_log"
 }
 
-func (c *AuditDataAccessLogTable) GetRowSchema() any {
-	return rows.AuditDataAccessLog{}
+func (c *AuditSystemEventLogTable) GetRowSchema() any {
+	return rows.AuditSystemEventLog{}
 }
 
-func (c *AuditDataAccessLogTable) GetConfigSchema() parse.Config {
-	return &AuditDataAccessLogTableConfig{}
+func (c *AuditSystemEventLogTable) GetConfigSchema() parse.Config {
+	return &AuditSystemEventLogTableConfig{}
 }
 
-func (c *AuditDataAccessLogTable) GetSourceOptions(sourceType string) []row_source.RowSourceOption {
+func (c *AuditSystemEventLogTable) GetSourceOptions(sourceType string) []row_source.RowSourceOption {
 	var opts []row_source.RowSourceOption
 	switch sourceType {
 	case artifact_source.GcpStorageBucketSourceIdentifier:
 		defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigBase{
-			FileLayout: utils.ToStringPointer("^cloudaudit\\.googleapis\\.com/data_access/\\d{4}/\\d{2}/\\d{2}/\\d{2}:\\d{2}:\\d{2}_\\d{2}:\\d{2}:\\d{2}_S\\d+\\.json$"),
+			FileLayout: utils.ToStringPointer("^cloudaudit\\.googleapis\\.com/system_event/\\d{4}/\\d{2}/\\d{2}/\\d{2}:\\d{2}:\\d{2}_\\d{2}:\\d{2}:\\d{2}_S\\d+\\.json$"),
 		}
 		opts = append(opts, artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig), artifact_source.WithRowPerLine())
 	}
@@ -68,7 +68,7 @@ func (c *AuditDataAccessLogTable) GetSourceOptions(sourceType string) []row_sour
 	return opts
 }
 
-func (c *AuditDataAccessLogTable) EnrichRow(row *rows.AuditDataAccessLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditDataAccessLog, error) {
+func (c *AuditSystemEventLogTable) EnrichRow(row *rows.AuditSystemEventLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditSystemEventLog, error) {
 
 	if sourceEnrichmentFields != nil {
 		row.CommonFields = *sourceEnrichmentFields
