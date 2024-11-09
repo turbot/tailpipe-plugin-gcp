@@ -12,6 +12,7 @@ require (
 	cloud.google.com/go/logging v1.11.0
 	github.com/rs/xid v1.5.0
 	github.com/turbot/go-kit v0.10.0-rc.0
+	github.com/turbot/pipe-fittings v1.4.1
 	github.com/turbot/tailpipe-plugin-sdk v0.0.0
 	google.golang.org/api v0.189.0
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade
@@ -151,7 +152,6 @@ require (
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
 	github.com/tkrajina/go-reflector v0.5.6 // indirect
-	github.com/turbot/pipe-fittings v1.4.1 // indirect
 	github.com/turbot/pipes-sdk-go v0.9.1 // indirect
 	github.com/turbot/steampipe-plugin-code v0.7.0 // indirect
 	github.com/turbot/terraform-components v0.0.0-20231213122222-1f3526cab7a7 // indirect
