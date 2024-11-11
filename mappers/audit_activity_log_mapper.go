@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	// "log"
 
 	"cloud.google.com/go/logging"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
+	"github.com/turbot/tailpipe-plugin-sdk/helpers"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
-	"google.golang.org/genproto/googleapis/cloud/audit"
+	// "google.golang.org/genproto/googleapis/cloud/audit"
 )
 
 type AuditActivityLogMapper struct {
@@ -42,32 +44,18 @@ func (m *AuditActivityLogMapper) Map(_ context.Context, a any) ([]*rows.AuditAct
 		return nil, fmt.Errorf("expected logging.Entry, string or []byte, got %T", a)
 	}
 
-	row := rows.NewAuditActivityLog()
+	row := &rows.AuditActivityLog{}
 	row.Timestamp = item.Timestamp
 	row.LogName = item.LogName
 	row.InsertId = item.InsertID
 	row.Severity = item.Severity.String()
 
-	if payload, ok := item.Payload.(*audit.AuditLog); ok {
-		row.ServiceName = payload.ServiceName
-		row.MethodName = payload.MethodName
-		row.ResourceName = payload.ResourceName
-
-		if payload.Status != nil {
-			row.StatusCode = &payload.Status.Code
-			row.StatusMessage = &payload.Status.Message
-		}
-
-		if payload.AuthenticationInfo != nil {
-			row.AuthenticationPrincipal = &payload.AuthenticationInfo.PrincipalEmail
-		}
-
-		if payload.RequestMetadata != nil {
-			row.RequestCallerIp = &payload.RequestMetadata.CallerIp
-			row.RequestCallerSuppliedUserAgent = &payload.RequestMetadata.CallerSuppliedUserAgent
-		}
+	payloadBytes, err := json.Marshal(item.Payload)
+	if err != nil {
+		return nil, err
 	}
-
+	tempPayload := helpers.JSONString(payloadBytes)
+	row.ProtoPayload = &tempPayload
 	if item.Resource != nil {
 		row.ResourceType = &item.Resource.Type
 		//row.ResourceLabels = &item.Resource.Labels // TODO: #finish add back in once we have support for map

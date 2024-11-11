@@ -2,6 +2,7 @@ package tables
 
 import (
 	"context"
+	// "log"
 	"time"
 
 	"github.com/rs/xid"
@@ -55,11 +56,6 @@ func (c *AuditActivityLogTable) GetConfigSchema() parse.Config {
 
 func (c *AuditActivityLogTable) GetSourceOptions(sourceType string) []row_source.RowSourceOption {
 	var opts []row_source.RowSourceOption
-	// return []row_source.RowSourceOption{
-	// 	artifact_source.WithRowPerLine(),
-	// }
-	// sourceTypeInfo := artifact_source_config.ArtifactSourceConfig.GetFileLayout()
-	// slog.Info("Config info:", sourceTypeInfo)
 	switch sourceType {
 	case artifact_source.GcpStorageBucketSourceIdentifier:
 		defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigBase{
@@ -92,9 +88,6 @@ func (c *AuditActivityLogTable) EnrichRow(row *rows.AuditActivityLog, sourceEnri
 		row.TpIps = append(row.TpIps, *row.RequestCallerIp)
 		row.TpSourceIP = row.RequestCallerIp
 	}
-
-	// TODO: #finish payload.Request is a struct which has `Fields` property of map[string]*Value - how to handle? (common keys: @type / name - but this can literally contain anything!)
-	// TODO: #finish payload.AuthorizationInfo is an array of structs with Resource (string), Permission (string), and Granted (bool) properties, seems to mostly be a single item but could be more - best way to handle?
 
 	return row, nil
 }
