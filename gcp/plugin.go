@@ -3,11 +3,9 @@ package gcp
 import (
 	"github.com/turbot/go-kit/helpers"
 	"github.com/turbot/tailpipe-plugin-gcp/config"
-	"github.com/turbot/tailpipe-plugin-gcp/sources"
-	"github.com/turbot/tailpipe-plugin-gcp/tables"
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
-	"github.com/turbot/tailpipe-plugin-sdk/row_source"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
+	// reference the table package to ensure that the tables are registered by the init functions
+	_ "github.com/turbot/tailpipe-plugin-gcp/tables"
 )
 
 type Plugin struct {
@@ -22,16 +20,8 @@ func NewPlugin() (_ plugin.TailpipePlugin, err error) {
 	}()
 
 	p := &Plugin{
-		PluginImpl: plugin.NewPluginImpl("gcp", config.NewGcpConnection),
+		PluginImpl: plugin.NewPluginImpl[*config.GcpConnection]("gcp"),
 	}
 
-	resources := &plugin.ResourceFunctions{
-		Tables:  []func() table.Table{tables.NewAuditLogTable},
-		Sources: []func() row_source.RowSource{sources.NewAuditLogAPISource},
-	}
-
-	if err := p.RegisterResources(resources); err != nil {
-		return nil, err
-	}
 	return p, nil
 }

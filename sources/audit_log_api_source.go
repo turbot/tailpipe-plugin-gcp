@@ -4,29 +4,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/turbot/tailpipe-plugin-sdk/config_data"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
-	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
-	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
-	"github.com/turbot/tailpipe-plugin-sdk/parse"
-	"github.com/turbot/tailpipe-plugin-sdk/row_source"
-	"github.com/turbot/tailpipe-plugin-sdk/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+
+	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
+	"github.com/turbot/tailpipe-plugin-sdk/config_data"
+	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
+	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
 
 const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
 
+func init() {
+	row_source.RegisterRowSource[*AuditLogAPISource]()
+}
+
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
 	row_source.RowSourceImpl[*AuditLogAPISourceConfig]
-}
-
-func NewAuditLogAPISource() row_source.RowSource {
-	return &AuditLogAPISource{}
 }
 
 func (s *AuditLogAPISource) Init(ctx context.Context, configData config_data.ConfigData, opts ...row_source.RowSourceOption) error {
@@ -39,10 +39,6 @@ func (s *AuditLogAPISource) Init(ctx context.Context, configData config_data.Con
 
 func (s *AuditLogAPISource) Identifier() string {
 	return AuditLogAPISourceIdentifier
-}
-
-func (s *AuditLogAPISource) GetConfigSchema() parse.Config {
-	return &AuditLogAPISourceConfig{}
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
@@ -72,9 +68,11 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		startTime = &st
 	}
 
+	sourceName := AuditLogAPISourceIdentifier
 	sourceEnrichmentFields := &enrichment.CommonFields{
-		TpIndex: projectID,
-		// TODO: #finish determine if we can establish more source enrichment fields
+		TpSourceName:     &sourceName,
+		TpSourceType:     AuditLogAPISourceIdentifier,
+		TpSourceLocation: &projectID,
 	}
 
 	filter := s.getLogNameFilter(projectID, logTypes, *startTime)

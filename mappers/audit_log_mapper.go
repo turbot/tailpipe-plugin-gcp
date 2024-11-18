@@ -6,9 +6,11 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/logging"
+	"google.golang.org/genproto/googleapis/cloud/audit"
+
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
-	"google.golang.org/genproto/googleapis/cloud/audit"
+	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
 
 type AuditLogMapper struct {
@@ -70,7 +72,14 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) ([]*rows.AuditLog, error)
 
 	if item.Resource != nil {
 		row.ResourceType = &item.Resource.Type
-		//row.ResourceLabels = &item.Resource.Labels // TODO: #finish add back in once we have support for map
+		if item.Resource.Labels != nil {
+			jsonBytes, err := json.Marshal(item.Resource.Labels)
+			if err != nil {
+				return nil, fmt.Errorf("error marshalling row data: %w", err)
+			}
+			rl := types.JSONString(jsonBytes)
+			row.ResourceLabels = &rl
+		}
 	}
 
 	if item.Operation != nil {
