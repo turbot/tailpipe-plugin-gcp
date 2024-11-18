@@ -13,10 +13,10 @@ func (a *AuditLogAPISourceConfig) Validate() error {
 		return fmt.Errorf("project is required")
 	}
 	if len(a.LogTypes) == 0 {
-		return fmt.Errorf("log_types is required")
+		return fmt.Errorf("log_types are required")
 	}
 	if a.Credentials == nil {
-		return fmt.Errorf("credentials is required")
+		return fmt.Errorf("credentials are required")
 	}
 
 	return nil
