@@ -8,3 +8,7 @@ func (a *AuditLogTableConfig) Validate() error {
 	// NOTE if this needs to mutate the object,use a pointer receiver
 	return nil
 }
+
+func (a *AuditLogTableConfig) Identifier() string {
+	return AuditLogTableIdentifier
+}

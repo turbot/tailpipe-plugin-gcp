@@ -5,10 +5,10 @@ import (
 
 	"github.com/rs/xid"
 
-	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-gcp/mappers"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-gcp/sources"
+	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
@@ -20,7 +20,7 @@ func init() {
 }
 
 type AuditLogTable struct {
-	table.TableImpl[*rows.AuditLog, *AuditLogTableConfig, *config.GcpConnection]
+	table.TableImpl[*rows.AuditLog, *AuditLogTableConfig, *artifact_source.GcpConnection]
 }
 
 func (c *AuditLogTable) Identifier() string {
