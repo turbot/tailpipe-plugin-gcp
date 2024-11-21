@@ -1,8 +1,10 @@
 package config
 
-type GcpConnection struct {
-}
+const PluginName = "gcp"
 
-func (c *GcpConnection) Validate() error {
-	return nil
-}
+//type GcpConnection struct {
+//}
+//
+//func (c *GcpConnection) Validate() error {
+//	return nil
+//}

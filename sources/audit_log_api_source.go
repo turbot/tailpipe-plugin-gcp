@@ -9,8 +9,8 @@ import (
 
 	"cloud.google.com/go/logging/logadmin"
 	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
 
+	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
 	"github.com/turbot/tailpipe-plugin-sdk/config_data"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
@@ -26,15 +26,15 @@ func init() {
 
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
-	row_source.RowSourceImpl[*AuditLogAPISourceConfig]
+	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *artifact_source.GcpConnection]
 }
 
-func (s *AuditLogAPISource) Init(ctx context.Context, configData config_data.ConfigData, opts ...row_source.RowSourceOption) error {
+func (s *AuditLogAPISource) Init(ctx context.Context, configData, connectionData config_data.ConfigData, opts ...row_source.RowSourceOption) error {
 	// set the collection state ctor
 	s.NewCollectionStateFunc = collection_state.NewTimeRangeCollectionState
 
 	// call base init
-	return s.RowSourceImpl.Init(ctx, configData, opts...)
+	return s.RowSourceImpl.Init(ctx, configData, connectionData, opts...)
 }
 
 func (s *AuditLogAPISource) Identifier() string {
@@ -48,15 +48,10 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	collectionState.HasContinuation = true
 
 	startTime := collectionState.GetLatestEndTime()
-	projectID := s.Config.Project
+	project := s.Connection.GetProject()
 	logTypes := s.Config.LogTypes
 
-	var opts []option.ClientOption
-	if s.Config.Credentials != nil {
-		opts = append(opts, option.WithCredentialsFile(*s.Config.Credentials))
-	}
-
-	client, err := logadmin.NewClient(ctx, projectID, opts...)
+	client, err := s.getClient(ctx, project)
 	if err != nil {
 		return err
 	}
@@ -72,10 +67,10 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	sourceEnrichmentFields := &enrichment.CommonFields{
 		TpSourceName:     &sourceName,
 		TpSourceType:     AuditLogAPISourceIdentifier,
-		TpSourceLocation: &projectID,
+		TpSourceLocation: &project,
 	}
 
-	filter := s.getLogNameFilter(projectID, logTypes, *startTime)
+	filter := s.getLogNameFilter(project, logTypes, *startTime)
 	collectionState.StartCollection()
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter))
@@ -112,6 +107,24 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	collectionState.EndCollection()
 
 	return nil
+}
+
+func (s *AuditLogAPISource) getClient(ctx context.Context, project string) (*logadmin.Client, error) {
+	opts, err := s.Connection.GetClientOptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if project == "" {
+		return nil, errors.New("unable to determine active project, please set project in configuration or env var CLOUDSDK_CORE_PROJECT / GCP_PROJECT")
+	}
+
+	client, err := logadmin.NewClient(ctx, project, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
