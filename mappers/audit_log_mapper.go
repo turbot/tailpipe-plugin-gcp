@@ -10,7 +10,6 @@ import (
 
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
-	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
 
 type AuditLogMapper struct {
@@ -73,12 +72,7 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) ([]*rows.AuditLog, error)
 	if item.Resource != nil {
 		row.ResourceType = &item.Resource.Type
 		if item.Resource.Labels != nil {
-			jsonBytes, err := json.Marshal(item.Resource.Labels)
-			if err != nil {
-				return nil, fmt.Errorf("error marshalling row data: %w", err)
-			}
-			rl := types.JSONString(jsonBytes)
-			row.ResourceLabels = &rl
+			row.ResourceLabels = &item.Resource.Labels
 		}
 	}
 
