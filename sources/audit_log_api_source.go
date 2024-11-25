@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
@@ -27,6 +26,8 @@ func init() {
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
 	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *artifact_source.GcpConnection]
+
+	LogType string
 }
 
 func (s *AuditLogAPISource) Init(ctx context.Context, configData, connectionData config_data.ConfigData, opts ...row_source.RowSourceOption) error {
@@ -49,7 +50,6 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 
 	startTime := collectionState.GetLatestEndTime()
 	project := s.Connection.GetProject()
-	logTypes := s.Config.LogTypes
 
 	client, err := s.getClient(ctx, project)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		TpSourceLocation: &project,
 	}
 
-	filter := s.getLogNameFilter(project, logTypes, *startTime)
+	filter := s.getLogNameFilter(project, *startTime)
 	collectionState.StartCollection()
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter))
@@ -127,35 +127,27 @@ func (s *AuditLogAPISource) getClient(ctx context.Context, project string) (*log
 	return client, nil
 }
 
-func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
-	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
-	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
-	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
+func (s *AuditLogAPISource) getLogNameFilter(project string, startTime time.Time) string {
+	var logGroup string
 	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 
-	// short-circuit default
-	if len(logTypes) == 0 {
-		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
-	}
-
-	var selected []string
-	for _, logType := range logTypes {
-		switch logType {
-		case "activity":
-			selected = append(selected, activity)
-		case "data_access":
-			selected = append(selected, dataAccess)
-		case "system_event":
-			selected = append(selected, systemEvent)
-		}
-	}
-
-	switch len(selected) {
-	case 0: // TODO: #error do we throw an error instead of returning default options here?
-		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
-	case 1:
-		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
+	switch s.LogType {
+	case "activity", "data_access", "system_event":
+		logGroup = fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%s%s"`, project, "%2F", s.LogType)
 	default:
-		return fmt.Sprintf("logName=(%s) %s", strings.Join(selected, " OR "), timePart)
+		logGroup = s.LogType
+	}
+
+	return fmt.Sprintf("logName=%s %s", logGroup, timePart)
+}
+
+func WithLogType(logType string) row_source.RowSourceOption {
+	return func(source row_source.RowSource) error {
+		rowSource, ok := source.(*AuditLogAPISource)
+		if !ok {
+			return errors.New("invalid source type")
+		}
+		rowSource.LogType = logType
+		return nil
 	}
 }

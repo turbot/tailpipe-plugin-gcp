@@ -10,6 +10,7 @@ replace github.com/turbot/pipe-fittings => ../pipe-fittings
 
 require (
 	cloud.google.com/go/logging v1.11.0
+	github.com/hashicorp/hcl/v2 v2.20.1
 	github.com/rs/xid v1.5.0
 	github.com/turbot/go-kit v0.10.0-rc.0
 	github.com/turbot/tailpipe-plugin-sdk v0.0.0
@@ -93,7 +94,6 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.20.1 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.1 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
@@ -132,6 +132,7 @@ require (
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/satyrius/gonx v1.4.0 // indirect

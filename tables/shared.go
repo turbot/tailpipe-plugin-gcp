@@ -5,38 +5,19 @@ import (
 
 	"github.com/rs/xid"
 
-	"github.com/turbot/tailpipe-plugin-gcp/mappers"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-gcp/sources"
-	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
-const AuditLogTableIdentifier = "gcp_audit_log"
+type AuditLogType string
 
-func init() {
-	table.RegisterTable[*rows.AuditLog, *AuditLogTable]()
-}
+const (
+	AuditLogTypeActivity    AuditLogType = "activity"
+	AuditLogTypeSystemEvent AuditLogType = "system_event"
+	AuditLogTypeDataAccess  AuditLogType = "data_access"
+)
 
-type AuditLogTable struct {
-	table.TableImpl[*rows.AuditLog, *AuditLogTableConfig, *artifact_source.GcpConnection]
-}
-
-func (c *AuditLogTable) Identifier() string {
-	return AuditLogTableIdentifier
-}
-
-func (c *AuditLogTable) SupportedSources() []*table.SourceMetadata[*rows.AuditLog] {
-	return []*table.SourceMetadata[*rows.AuditLog]{
-		{
-			SourceName: sources.AuditLogAPISourceIdentifier,
-			MapperFunc: mappers.NewAuditLogMapper,
-		},
-	}
-}
-
-func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
+func EnrichAuditLogRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
 
 	if sourceEnrichmentFields != nil {
 		row.CommonFields = *sourceEnrichmentFields
