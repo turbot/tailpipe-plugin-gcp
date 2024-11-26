@@ -9,24 +9,24 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
-const SystemEventAuditLogTableIdentifier = "gcp_system_event_audit_log"
+const AuditLogSystemEventTableIdentifier = "gcp_audit_log_system_event"
 
 func init() {
 	// Register the table, with type parameters:
 	// 1. row struct
 	// 2. table config struct
 	// 3. table implementation
-	table.RegisterTable[*rows.AuditLog, *SystemEventAuditLogTableConfig, *SystemEventAuditLogTable]()
+	table.RegisterTable[*rows.AuditLog, *AuditLogSystemEventTableConfig, *AuditLogSystemEventTable]()
 }
 
-type SystemEventAuditLogTable struct {
+type AuditLogSystemEventTable struct {
 }
 
-func (c *SystemEventAuditLogTable) Identifier() string {
-	return SystemEventAuditLogTableIdentifier
+func (c *AuditLogSystemEventTable) Identifier() string {
+	return AuditLogSystemEventTableIdentifier
 }
 
-func (c *SystemEventAuditLogTable) SupportedSources(_ *SystemEventAuditLogTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogSystemEventTable) SupportedSources(_ *AuditLogSystemEventTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
 	return []*table.SourceMetadata[*rows.AuditLog]{
 		{
 			SourceName: sources.AuditLogAPISourceIdentifier,
@@ -38,6 +38,6 @@ func (c *SystemEventAuditLogTable) SupportedSources(_ *SystemEventAuditLogTableC
 	}
 }
 
-func (c *SystemEventAuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
+func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }
