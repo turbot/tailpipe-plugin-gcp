@@ -9,7 +9,7 @@ import (
 	"cloud.google.com/go/logging/logadmin"
 	"google.golang.org/api/iterator"
 
-	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
+	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
 	"github.com/turbot/tailpipe-plugin-sdk/config_data"
 	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
@@ -25,7 +25,7 @@ func init() {
 
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
-	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *artifact_source.GcpConnection]
+	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *config.GcpConnection]
 
 	LogType string
 }
