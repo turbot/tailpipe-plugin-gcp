@@ -9,35 +9,35 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
-const ActivityAuditLogTableIdentifier = "gcp_activity_audit_log"
+const AuditLogDataAccessTableIdentifier = "gcp_audit_log_data_access"
 
 func init() {
 	// Register the table, with type parameters:
 	// 1. row struct
 	// 2. table config struct
 	// 3. table implementation
-	table.RegisterTable[*rows.AuditLog, *ActivityAuditLogTableConfig, *ActivityAuditLogTable]()
+	table.RegisterTable[*rows.AuditLog, *AuditLogDataAccessTableConfig, *AuditLogDataAccessTable]()
 }
 
-type ActivityAuditLogTable struct {
+type AuditLogDataAccessTable struct {
 }
 
-func (c *ActivityAuditLogTable) Identifier() string {
-	return ActivityAuditLogTableIdentifier
+func (c *AuditLogDataAccessTable) Identifier() string {
+	return AuditLogDataAccessTableIdentifier
 }
 
-func (c *ActivityAuditLogTable) SupportedSources(_ *ActivityAuditLogTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogDataAccessTable) SupportedSources(_ *AuditLogDataAccessTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
 	return []*table.SourceMetadata[*rows.AuditLog]{
 		{
 			SourceName: sources.AuditLogAPISourceIdentifier,
 			MapperFunc: mappers.NewAuditLogMapper,
 			Options: []row_source.RowSourceOption{
-				sources.WithLogType(string(AuditLogTypeActivity)),
+				sources.WithLogType(string(AuditLogTypeDataAccess)),
 			},
 		},
 	}
 }
 
-func (c *ActivityAuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
+func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }
