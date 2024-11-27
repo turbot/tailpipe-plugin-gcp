@@ -12,32 +12,62 @@ type AuditLog struct {
 	enrichment.CommonFields
 
 	// Mandatory fields
-	Timestamp    time.Time `json:"timestamp"`
-	LogName      string    `json:"log_name"`
-	InsertId     string    `json:"insert_id"`
-	Severity     string    `json:"severity"`
-	ServiceName  string    `json:"service_name"`
-	MethodName   string    `json:"method_name"`
-	ResourceName string    `json:"resource_name"`
+	Timestamp time.Time `json:"timestamp"`
+	LogName   string    `json:"log_name"`
+	InsertId  string    `json:"insert_id"`
+	Severity  string    `json:"severity"`
 
 	// Optional fields
-	AuthenticationPrincipal        *string            `json:"authentication_principal,omitempty"`
-	ResourceType                   *string            `json:"resource_type,omitempty"`
-	ResourceLabels                 *map[string]string `json:"resource_labels,omitempty" parquet:"type=JSON"`
-	RequestCallerIp                *string            `json:"request_caller_ip,omitempty"`
-	RequestCallerSuppliedUserAgent *string            `json:"request_caller_supplied_user_agent,omitempty"`
-	StatusCode                     *int32             `json:"status_code,omitempty"`
-	StatusMessage                  *string            `json:"status_message,omitempty"`
-	OperationId                    *string            `json:"operation_id,omitempty"`
-	OperationProducer              *string            `json:"operation_producer,omitempty"`
-	OperationFirst                 *bool              `json:"operation_first,omitempty"`
-	OperationLast                  *bool              `json:"operation_last,omitempty"`
-	RequestMethod                  string             `json:"request_url,omitempty"`
-	RequestSize                    int64              `json:"request_size,omitempty"`
-	RequestStatus                  int                `json:"request_status,omitempty"`
-	RequestResponseSize            int64              `json:"request_response_size,omitempty"`
+	ServiceName        *string                     `json:"service_name,omitempty"`
+	MethodName         *string                     `json:"method_name,omitempty"`
+	ResourceName       *string                     `json:"resource_name,omitempty"`
+	AuthenticationInfo *AuditLogAuthenticationInfo `json:"authentication_info,omitempty"`
+	Status             *AuditLogStatus             `json:"status,omitempty"`
+	Resource           *AuditLogResource           `json:"resource,omitempty"`
+	Operation          *AuditLogOperation          `json:"operation,omitempty"`
+	RequestMetadata    *AuditLogRequestMetadata    `json:"request_metadata,omitempty"`
+	HttpRequest        *AuditLogHttpRequest        `json:"http_request,omitempty"`
 }
 
 func NewAuditLog() *AuditLog {
 	return &AuditLog{}
+}
+
+type AuditLogAuthenticationInfo struct {
+	PrincipalEmail        string `json:"principal_email"`
+	PrincipalSubject      string `json:"principal_subject"`
+	AuthoritySelector     string `json:"authority_selector"`
+	ServiceAccountKeyName string `json:"service_account_key_name"`
+}
+
+type AuditLogStatus struct {
+	Code    int32  `json:"code"`
+	Message string `json:"message"`
+}
+
+type AuditLogResource struct {
+	Type   string            `json:"type"`
+	Labels map[string]string `json:"labels" parquet:"type=JSON"`
+}
+
+type AuditLogOperation struct {
+	Id       string `json:"id"`
+	Producer string `json:"producer"`
+	First    bool   `json:"first"`
+	Last     bool   `json:"last"`
+}
+
+type AuditLogHttpRequest struct {
+	Method       string `json:"method"`
+	Url          string `json:"url"`
+	Size         int64  `json:"size"`
+	Status       int    `json:"status"`
+	ResponseSize int64  `json:"response_size"`
+	LocalIp      string `json:"local_ip"`
+	RemoteIp     string `json:"remote_ip"`
+}
+
+type AuditLogRequestMetadata struct {
+	CallerIp                string `json:"caller_ip"`
+	CallerSuppliedUserAgent string `json:"caller_supplied_user_agent"`
 }

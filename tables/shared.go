@@ -29,16 +29,33 @@ func EnrichAuditLogRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.Co
 	row.TpIndex = *row.CommonFields.TpSourceLocation // project
 	row.TpDate = row.Timestamp.Truncate(24 * time.Hour)
 
-	if row.AuthenticationPrincipal != nil {
-		row.TpUsernames = append(row.TpUsernames, *row.AuthenticationPrincipal)
-	}
-	if row.RequestCallerIp != nil {
-		row.TpIps = append(row.TpIps, *row.RequestCallerIp)
-		row.TpSourceIP = row.RequestCallerIp
+	if row.AuthenticationInfo != nil {
+		if row.AuthenticationInfo.PrincipalEmail != "" {
+			row.TpUsernames = append(row.TpUsernames, row.AuthenticationInfo.PrincipalEmail)
+			row.TpEmails = append(row.TpEmails, row.AuthenticationInfo.PrincipalEmail)
+		}
+		if row.AuthenticationInfo.PrincipalSubject != "" {
+			row.TpUsernames = append(row.TpUsernames, row.AuthenticationInfo.PrincipalSubject)
+		}
 	}
 
-	// TODO: #finish payload.Request is a struct which has `Fields` property of map[string]*Value - how to handle? (common keys: @type / name - but this can literally contain anything!)
-	// TODO: #finish payload.AuthorizationInfo is an array of structs with Resource (string), Permission (string), and Granted (bool) properties, seems to mostly be a single item but could be more - best way to handle?
+	if row.HttpRequest != nil {
+		if row.HttpRequest.LocalIp != "" {
+			row.TpIps = append(row.TpIps, row.HttpRequest.LocalIp)
+			row.TpSourceIP = &row.HttpRequest.LocalIp
+		}
+		if row.HttpRequest.RemoteIp != "" {
+			row.TpIps = append(row.TpIps, row.HttpRequest.RemoteIp)
+			row.TpDestinationIP = &row.HttpRequest.RemoteIp
+		}
+	}
+
+	if row.RequestMetadata != nil {
+		if row.RequestMetadata.CallerIp != "" {
+			row.TpIps = append(row.TpIps, row.RequestMetadata.CallerIp)
+			row.TpSourceIP = &row.RequestMetadata.CallerIp
+		}
+	}
 
 	return row, nil
 }
