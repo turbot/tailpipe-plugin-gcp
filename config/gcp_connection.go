@@ -69,7 +69,7 @@ func (c *GcpConnection) GetClientOptions(ctx context.Context) ([]option.ClientOp
 		opts = append(opts, option.WithQuotaProject(qp))
 	}
 
-	// impersonation of service account
+	// Impersonate access token authentication
 	if c.ImpersonateAccessToken != nil {
 		tokenConfig := oauth2.Token{
 			AccessToken: *c.ImpersonateAccessToken,
@@ -79,6 +79,7 @@ func (c *GcpConnection) GetClientOptions(ctx context.Context) ([]option.ClientOp
 		opts = append(opts, option.WithTokenSource(staticTokenSource))
 	}
 
+	// Impersonate storage account authentication
 	if c.ImpersonateServiceAccount != nil {
 		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
 			TargetPrincipal: *c.ImpersonateServiceAccount,
