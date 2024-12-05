@@ -85,7 +85,7 @@ func (c *GcpConnection) GetClientOptions(ctx context.Context) ([]option.ClientOp
 			Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
 		})
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		opts = append(opts, option.WithTokenSource(ts))
