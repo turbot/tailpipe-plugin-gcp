@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 )
@@ -13,10 +14,11 @@ import (
 const PluginName = "gcp"
 
 type GcpConnection struct {
-	Project      *string `json:"project" hcl:"project"`
-	Credentials  *string `json:"credentials" hcl:"credentials"`
-	QuotaProject *string `json:"quota_project" hcl:"quota_project"`
-	Impersonate  *string `json:"impersonate" hcl:"impersonate"`
+	Project                   *string `json:"project" hcl:"project"`
+	Credentials               *string `json:"credentials" hcl:"credentials"`
+	QuotaProject              *string `json:"quota_project" hcl:"quota_project"`
+	ImpersonateAccessToken    *string `json:"impersonate_access_token" hcl:"impersonate_access_token"`
+	ImpersonateServiceAccount *string `json:"impersonate_service_account" hcl:"impersonate_service_account"`
 }
 
 func (c *GcpConnection) Validate() error {
@@ -68,17 +70,27 @@ func (c *GcpConnection) GetClientOptions(ctx context.Context) ([]option.ClientOp
 	}
 
 	// impersonation of service account
-	if c.Impersonate != nil {
+	if c.ImpersonateAccessToken != nil {
+		tokenConfig := oauth2.Token{
+			AccessToken: *c.ImpersonateAccessToken,
+		}
+		staticTokenSource := oauth2.StaticTokenSource(&tokenConfig)
+
+		opts = append(opts, option.WithTokenSource(staticTokenSource))
+	}
+
+	if c.ImpersonateServiceAccount != nil {
 		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
-			TargetPrincipal: *c.Impersonate,
+			TargetPrincipal: *c.ImpersonateServiceAccount,
 			Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
 		})
 		if err != nil {
-			return opts, err
+			panic(err)
 		}
 
 		opts = append(opts, option.WithTokenSource(ts))
 	}
+
 	return opts, nil
 }
 
