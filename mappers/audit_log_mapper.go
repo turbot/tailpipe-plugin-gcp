@@ -10,14 +10,9 @@ import (
 
 	"github.com/turbot/pipe-fittings/utils"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
 type AuditLogMapper struct {
-}
-
-func NewAuditLogMapper() table.Mapper[*rows.AuditLog] {
-	return &AuditLogMapper{}
 }
 
 func (m *AuditLogMapper) Identifier() string {

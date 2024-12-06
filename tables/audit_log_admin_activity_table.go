@@ -26,11 +26,11 @@ func (c *AuditLogAdminActivityTable) Identifier() string {
 	return AuditLogAdminActivityTableIdentifier
 }
 
-func (c *AuditLogAdminActivityTable) SupportedSources(_ *AuditLogAdminActivityTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogAdminActivityTable) GetSourceMetadata(_ *AuditLogAdminActivityTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
 	return []*table.SourceMetadata[*rows.AuditLog]{
 		{
 			SourceName: sources.AuditLogAPISourceIdentifier,
-			MapperFunc: mappers.NewAuditLogMapper,
+			Mapper:     &mappers.AuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				sources.WithLogType(string(AuditLogTypeActivity)),
 			},
@@ -38,6 +38,6 @@ func (c *AuditLogAdminActivityTable) SupportedSources(_ *AuditLogAdminActivityTa
 	}
 }
 
-func (c *AuditLogAdminActivityTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
+func (c *AuditLogAdminActivityTable) EnrichRow(row *rows.AuditLog, _ *AuditLogAdminActivityTableConfig, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }

@@ -17,12 +17,8 @@ const (
 	AuditLogTypeDataAccess  AuditLogType = "data_access"
 )
 
-func EnrichAuditLogRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
-
-	if sourceEnrichmentFields != nil {
-		row.CommonFields = *sourceEnrichmentFields
-	}
-
+func EnrichAuditLogRow(row *rows.AuditLog, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
+	row.CommonFields = sourceEnrichmentFields.CommonFields
 	row.TpID = xid.New().String()
 	row.TpTimestamp = row.Timestamp
 	row.TpIngestTimestamp = time.Now()

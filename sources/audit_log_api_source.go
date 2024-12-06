@@ -64,10 +64,12 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 
 	sourceName := AuditLogAPISourceIdentifier
-	sourceEnrichmentFields := &enrichment.CommonFields{
-		TpSourceName:     &sourceName,
-		TpSourceType:     AuditLogAPISourceIdentifier,
-		TpSourceLocation: &project,
+	sourceEnrichmentFields := &enrichment.SourceEnrichment{
+		CommonFields: enrichment.CommonFields{
+			TpSourceName:     &sourceName,
+			TpSourceType:     AuditLogAPISourceIdentifier,
+			TpSourceLocation: &project,
+		},
 	}
 
 	filter := s.getLogNameFilter(project, *startTime)
@@ -86,8 +88,8 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		if logEntry != nil {
 			if collectionState.ShouldCollectRow(logEntry.Timestamp, logEntry.InsertID) {
 				row := &types.RowData{
-					Data:     *logEntry,
-					Metadata: sourceEnrichmentFields,
+					Data:             *logEntry,
+					SourceEnrichment: sourceEnrichmentFields,
 				}
 
 				// update collection state
