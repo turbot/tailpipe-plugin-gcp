@@ -40,6 +40,9 @@ type AuditLog struct {
 	AuthorizationInfo     []*audit.AuthorizationInfo  `json:"authorization_info,omitempty" parquet:"type=JSON"`
 	PolicyViolationInfo   *audit.PolicyViolationInfo  `json:"policy_violation_info,omitempty" parquet:"type=JSON"` // nested map/[]struct
 	ResourceOriginalState interface{}                 `json:"resource_original_state,omitempty" parquet:"type=JSON"`
+	Request               map[string]interface{}      `json:"request,omitempty" parquet:"type=JSON"`
+	Response              map[string]interface{}      `json:"response,omitempty" parquet:"type=JSON"`
+	Metadata              map[string]interface{}      `json:"metadata,omitempty" parquet:"type=JSON"`
 }
 
 func NewAuditLog() *AuditLog {

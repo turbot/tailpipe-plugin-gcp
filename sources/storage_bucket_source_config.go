@@ -18,7 +18,6 @@ type GcpStorageBucketSourceConfig struct {
 	Bucket     string   `hcl:"bucket"`
 	Prefix     string   `hcl:"prefix"`
 	Extensions []string `hcl:"extensions"`
-	// TODO: Add additional fields https://github.com/turbot/tailpipe-plugin-sdk/issues/15
 }
 
 func (g *GcpStorageBucketSourceConfig) Validate() error {

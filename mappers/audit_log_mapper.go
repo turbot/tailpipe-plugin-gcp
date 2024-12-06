@@ -96,13 +96,16 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) (*rows.AuditLog, error) {
 				CallerSuppliedUserAgent: payload.RequestMetadata.CallerSuppliedUserAgent,
 				CallerNetwork:           payload.RequestMetadata.CallerNetwork,
 				RequestAttributes:       payload.RequestMetadata.RequestAttributes,
-				DestinationAttributes: &rows.AuditLogRequestMetadataDestinationAttributes{
+			}
+
+			if payload.RequestMetadata.DestinationAttributes != nil {
+				row.RequestMetadata.DestinationAttributes = &rows.AuditLogRequestMetadataDestinationAttributes{
 					Ip:         payload.RequestMetadata.DestinationAttributes.Ip,
 					Port:       payload.RequestMetadata.DestinationAttributes.Port,
 					Principal:  payload.RequestMetadata.DestinationAttributes.Principal,
 					RegionCode: payload.RequestMetadata.DestinationAttributes.RegionCode,
 					Labels:     payload.RequestMetadata.DestinationAttributes.Labels,
-				},
+				}
 			}
 		}
 
@@ -125,6 +128,18 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) (*rows.AuditLog, error) {
 
 		if payload.ResourceOriginalState != nil {
 			row.ResourceOriginalState = payload.ResourceOriginalState
+		}
+
+		if payload.Request != nil {
+			row.Request = payload.Request.AsMap()
+		}
+
+		if payload.Response != nil {
+			row.Response = payload.Response.AsMap()
+		}
+
+		if payload.Metadata != nil {
+			row.Metadata = payload.Metadata.AsMap()
 		}
 	}
 

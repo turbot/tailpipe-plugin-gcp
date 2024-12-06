@@ -50,7 +50,7 @@ func (s *GcpStorageBucketSource) Init(ctx context.Context, configData, connectio
 	}
 	s.client = client
 
-	slog.Info("Initialized GcpStorageBucketSource", "bucket", s.Config.Bucket, "extensions", s.Extensions)
+	slog.Info("Initialized GcpStorageBucketSource", "bucket", s.Config.Bucket, "prefix", s.Config.Prefix, "extensions", s.Extensions)
 	return nil
 }
 
@@ -64,7 +64,10 @@ func (s *GcpStorageBucketSource) Close() error {
 
 func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
 	bucket := s.client.Bucket(s.Config.Bucket)
-	query := &storage.Query{Prefix: s.Config.Prefix}
+	query := &storage.Query{
+		Prefix:      s.Config.Prefix,
+		SoftDeleted: false,
+	}
 
 	objectIterator := bucket.Objects(ctx, query)
 	for {
