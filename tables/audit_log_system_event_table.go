@@ -26,11 +26,11 @@ func (c *AuditLogSystemEventTable) Identifier() string {
 	return AuditLogSystemEventTableIdentifier
 }
 
-func (c *AuditLogSystemEventTable) SupportedSources(_ *AuditLogSystemEventTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogSystemEventTable) GetSourceMetadata(_ *AuditLogSystemEventTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
 	return []*table.SourceMetadata[*rows.AuditLog]{
 		{
 			SourceName: sources.AuditLogAPISourceIdentifier,
-			MapperFunc: mappers.NewAuditLogMapper,
+			Mapper:     &mappers.AuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				sources.WithLogType(string(AuditLogTypeSystemEvent)),
 			},
@@ -38,6 +38,6 @@ func (c *AuditLogSystemEventTable) SupportedSources(_ *AuditLogSystemEventTableC
 	}
 }
 
-func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
+func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, _ *AuditLogSystemEventTableConfig, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }

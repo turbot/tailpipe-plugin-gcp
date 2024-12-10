@@ -26,11 +26,11 @@ func (c *AuditLogDataAccessTable) Identifier() string {
 	return AuditLogDataAccessTableIdentifier
 }
 
-func (c *AuditLogDataAccessTable) SupportedSources(_ *AuditLogDataAccessTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogDataAccessTable) GetSourceMetadata(_ *AuditLogDataAccessTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
 	return []*table.SourceMetadata[*rows.AuditLog]{
 		{
 			SourceName: sources.AuditLogAPISourceIdentifier,
-			MapperFunc: mappers.NewAuditLogMapper,
+			Mapper:     &mappers.AuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				sources.WithLogType(string(AuditLogTypeDataAccess)),
 			},
@@ -38,6 +38,6 @@ func (c *AuditLogDataAccessTable) SupportedSources(_ *AuditLogDataAccessTableCon
 	}
 }
 
-func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields *enrichment.CommonFields) (*rows.AuditLog, error) {
+func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, _ *AuditLogDataAccessTableConfig, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }
