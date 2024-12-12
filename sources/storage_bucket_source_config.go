@@ -17,7 +17,7 @@ type GcpStorageBucketSourceConfig struct {
 
 	Bucket     string   `hcl:"bucket"`
 	Prefix     string   `hcl:"prefix"`
-	Extensions []string `hcl:"extensions"`
+	Extensions []string `hcl:"extensions,optional"`
 }
 
 func (g *GcpStorageBucketSourceConfig) Validate() error {
