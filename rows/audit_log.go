@@ -43,6 +43,7 @@ type AuditLog struct {
 	Request               map[string]interface{}      `json:"request,omitempty" parquet:"type=JSON"`
 	Response              map[string]interface{}      `json:"response,omitempty" parquet:"type=JSON"`
 	Metadata              map[string]interface{}      `json:"metadata,omitempty" parquet:"type=JSON"`
+	ServiceData           map[string]interface{}      `json:"service_data,omitempty" parquet:"type=JSON"`
 }
 
 func NewAuditLog() *AuditLog {

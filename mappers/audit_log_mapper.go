@@ -136,6 +136,15 @@ func (m *AuditLogMapper) Map(_ context.Context, a any) (*rows.AuditLog, error) {
 		if payload.Metadata != nil {
 			row.Metadata = payload.Metadata.AsMap()
 		}
+
+		if payload.ServiceData != nil && payload.ServiceData.Value != nil {
+			var jsonServiceData map[string]interface{}
+			err := json.Unmarshal(payload.ServiceData.Value, &jsonServiceData)
+			if err != nil {
+				return nil, fmt.Errorf("error decoding json: %w", err)
+			}
+			row.ServiceData = jsonServiceData
+		}
 	}
 
 	// resource
