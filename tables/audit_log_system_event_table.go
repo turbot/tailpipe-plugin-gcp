@@ -5,11 +5,11 @@ import (
 	"github.com/turbot/tailpipe-plugin-gcp/mappers"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-gcp/sources"
+	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
 	"github.com/turbot/tailpipe-plugin-sdk/constants"
-	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
-	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
@@ -54,6 +54,6 @@ func (c *AuditLogSystemEventTable) GetSourceMetadata(_ *AuditLogSystemEventTable
 	}
 }
 
-func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, _ *AuditLogSystemEventTableConfig, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
+func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, _ *AuditLogSystemEventTableConfig, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
 	"github.com/turbot/tailpipe-plugin-sdk/constants"
-	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
@@ -55,6 +55,6 @@ func (c *AuditLogDataAccessTable) GetSourceMetadata(_ *AuditLogDataAccessTableCo
 	}
 }
 
-func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, _ *AuditLogDataAccessTableConfig, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
+func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, _ *AuditLogDataAccessTableConfig, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }

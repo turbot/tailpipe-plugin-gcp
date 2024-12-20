@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
-	"google.golang.org/api/iterator"
-
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
 	"github.com/turbot/tailpipe-plugin-sdk/config_data"
-	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
+	"google.golang.org/api/iterator"
 )
 
 const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
@@ -64,8 +63,8 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 
 	sourceName := AuditLogAPISourceIdentifier
-	sourceEnrichmentFields := &enrichment.SourceEnrichment{
-		CommonFields: enrichment.CommonFields{
+	sourceEnrichmentFields := &schema.SourceEnrichment{
+		CommonFields: schema.CommonFields{
 			TpSourceName:     &sourceName,
 			TpSourceType:     AuditLogAPISourceIdentifier,
 			TpSourceLocation: &project,
