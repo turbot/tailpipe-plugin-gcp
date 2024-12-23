@@ -7,15 +7,14 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
+	"github.com/turbot/pipe-fittings/utils"
+	"github.com/turbot/tailpipe-plugin-gcp/rows"
+	"github.com/turbot/tailpipe-plugin-sdk/table"
 	"google.golang.org/genproto/googleapis/cloud/audit"
 	adminpb "google.golang.org/genproto/googleapis/iam/admin/v1"
 	loggingpb "google.golang.org/genproto/googleapis/iam/v1/logging"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/turbot/pipe-fittings/utils"
-	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
 type AuditLogMapper struct {
