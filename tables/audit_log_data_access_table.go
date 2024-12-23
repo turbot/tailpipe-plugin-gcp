@@ -20,7 +20,7 @@ func init() {
 	// 1. row struct
 	// 2. table config struct
 	// 3. table implementation
-	table.RegisterTable[*rows.AuditLog, *AuditLogDataAccessTableConfig, *AuditLogDataAccessTable]()
+	table.RegisterTable[*rows.AuditLog, *AuditLogDataAccessTable]()
 }
 
 type AuditLogDataAccessTable struct {
@@ -30,7 +30,7 @@ func (c *AuditLogDataAccessTable) Identifier() string {
 	return AuditLogDataAccessTableIdentifier
 }
 
-func (c *AuditLogDataAccessTable) GetSourceMetadata(_ *AuditLogDataAccessTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogDataAccessTable) GetSourceMetadata() []*table.SourceMetadata[*rows.AuditLog] {
 	// the default file layout for Data Access Logs in GCP Storage Buckets
 	defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigBase{
 		FileLayout: utils.ToStringPointer("cloudaudit\\.googleapis\\.com/data_access/(?P<year>\\d{4})/(?P<month>\\d{2})/(?P<day>\\d{2})/(?P<hour>\\d{2}).*\\.json"),
@@ -55,6 +55,6 @@ func (c *AuditLogDataAccessTable) GetSourceMetadata(_ *AuditLogDataAccessTableCo
 	}
 }
 
-func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, _ *AuditLogDataAccessTableConfig, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
+func (c *AuditLogDataAccessTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }

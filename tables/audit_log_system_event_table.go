@@ -20,7 +20,7 @@ func init() {
 	// 1. row struct
 	// 2. table config struct
 	// 3. table implementation
-	table.RegisterTable[*rows.AuditLog, *AuditLogSystemEventTableConfig, *AuditLogSystemEventTable]()
+	table.RegisterTable[*rows.AuditLog, *AuditLogSystemEventTable]()
 }
 
 type AuditLogSystemEventTable struct {
@@ -30,7 +30,7 @@ func (c *AuditLogSystemEventTable) Identifier() string {
 	return AuditLogSystemEventTableIdentifier
 }
 
-func (c *AuditLogSystemEventTable) GetSourceMetadata(_ *AuditLogSystemEventTableConfig) []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogSystemEventTable) GetSourceMetadata() []*table.SourceMetadata[*rows.AuditLog] {
 	defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigBase{
 		FileLayout: utils.ToStringPointer("cloudaudit\\.googleapis\\.com/system_event/(?P<year>\\d{4})/(?P<month>\\d{2})/(?P<day>\\d{2})/(?P<hour>\\d{2}).*\\.json"),
 	}
@@ -54,6 +54,6 @@ func (c *AuditLogSystemEventTable) GetSourceMetadata(_ *AuditLogSystemEventTable
 	}
 }
 
-func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, _ *AuditLogSystemEventTableConfig, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
+func (c *AuditLogSystemEventTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
 	return EnrichAuditLogRow(row, sourceEnrichmentFields)
 }

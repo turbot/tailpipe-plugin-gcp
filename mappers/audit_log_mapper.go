@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/turbot/tailpipe-plugin-sdk/table"
 
 	"cloud.google.com/go/logging"
 	"google.golang.org/genproto/googleapis/cloud/audit"
@@ -19,7 +20,7 @@ func (m *AuditLogMapper) Identifier() string {
 	return "gcp_audit_log_mapper"
 }
 
-func (m *AuditLogMapper) Map(_ context.Context, a any) (*rows.AuditLog, error) {
+func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*rows.AuditLog]) (*rows.AuditLog, error) {
 	var item logging.Entry
 
 	switch v := a.(type) {
