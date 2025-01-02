@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
 
 	"cloud.google.com/go/logging"
 	"google.golang.org/genproto/googleapis/cloud/audit"
+	adminpb "google.golang.org/genproto/googleapis/iam/admin/v1"
+	loggingpb "google.golang.org/genproto/googleapis/iam/v1/logging"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/turbot/pipe-fittings/utils"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
+	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
 type AuditLogMapper struct {
@@ -139,12 +143,11 @@ func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*row
 		}
 
 		if payload.ServiceData != nil && payload.ServiceData.Value != nil {
-			var jsonServiceData map[string]interface{}
-			err := json.Unmarshal(payload.ServiceData.Value, &jsonServiceData)
+			serviceData, err := decodeServiceData(payload.ServiceData.TypeUrl, payload.ServiceData.Value)
 			if err != nil {
-				return nil, fmt.Errorf("error decoding json: %w", err)
+				return nil, fmt.Errorf("error decoding service data: %w", err)
 			}
-			row.ServiceData = jsonServiceData
+			row.ServiceData = serviceData
 		}
 	}
 
@@ -200,4 +203,55 @@ func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*row
 	}
 
 	return row, nil
+}
+
+//func decodeServiceData(tu string, v []byte) (string, error) {
+//	switch tu {
+//	case "type.googleapis.com/google.iam.v1.logging.AuditData":
+//		var auditData loggingpb.AuditData
+//		if err := proto.Unmarshal(v, &auditData); err != nil {
+//			return "", fmt.Errorf("error decoding proto: %w", err)
+//		}
+//		return auditData.String(), nil
+//	case "type.googleapis.com/google.iam.admin.v1.AuditData":
+//		var auditData adminpb.AuditData
+//		if err := proto.Unmarshal(v, &auditData); err != nil {
+//			return "", fmt.Errorf("error decoding proto: %w", err)
+//		}
+//		return auditData.String(), nil
+//	default:
+//		return "", nil
+//	}
+//}
+
+func decodeServiceData(tu string, v []byte) (*map[string]interface{}, error) {
+	var protoMessage proto.Message
+
+	switch tu {
+	case "type.googleapis.com/google.iam.v1.logging.AuditData":
+		protoMessage = &loggingpb.AuditData{}
+	case "type.googleapis.com/google.iam.admin.v1.AuditData":
+		protoMessage = &adminpb.AuditData{}
+	default:
+		return nil, fmt.Errorf("unsupported type: %s", tu)
+	}
+
+	// Unmarshal the protobuf payload into the appropriate struct
+	if err := proto.Unmarshal(v, protoMessage); err != nil {
+		return nil, fmt.Errorf("error decoding proto: %w", err)
+	}
+
+	// Marshal the protobuf message into JSON
+	jsonBytes, err := protojson.Marshal(protoMessage)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling proto to JSON: %w", err)
+	}
+
+	// Unmarshal the JSON into a map[string]interface{}
+	var result map[string]interface{}
+	if err = json.Unmarshal(jsonBytes, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON to map: %w", err)
+	}
+
+	return &result, nil
 }
