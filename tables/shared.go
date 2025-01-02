@@ -4,9 +4,8 @@ import (
 	"time"
 
 	"github.com/rs/xid"
-
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 )
 
 type AuditLogType string
@@ -17,7 +16,7 @@ const (
 	AuditLogTypeDataAccess  AuditLogType = "data_access"
 )
 
-func EnrichAuditLogRow(row *rows.AuditLog, sourceEnrichmentFields enrichment.SourceEnrichment) (*rows.AuditLog, error) {
+func EnrichAuditLogRow(row *rows.AuditLog, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
 	row.CommonFields = sourceEnrichmentFields.CommonFields
 	row.TpID = xid.New().String()
 	row.TpTimestamp = row.Timestamp

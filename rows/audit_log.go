@@ -3,16 +3,15 @@ package rows
 import (
 	"time"
 
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"google.golang.org/genproto/googleapis/cloud/audit"
 	"google.golang.org/genproto/googleapis/rpc/context/attribute_context"
-
-	"github.com/turbot/tailpipe-plugin-sdk/enrichment"
 )
 
 // AuditLog represents an enriched row ready for parquet writing
 type AuditLog struct {
 	// embed required enrichment fields
-	enrichment.CommonFields
+	schema.CommonFields
 
 	// Mandatory fields
 	Timestamp    time.Time `json:"timestamp"`
