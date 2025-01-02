@@ -5,10 +5,10 @@ import (
 	"github.com/turbot/tailpipe-plugin-gcp/mappers"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-gcp/sources"
-	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
 	"github.com/turbot/tailpipe-plugin-sdk/constants"
+	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
@@ -45,7 +45,7 @@ func (c *AuditLogSystemEventTable) GetSourceMetadata() []*table.SourceMetadata[*
 		},
 		{
 			SourceName: constants.ArtifactSourceIdentifier,
-			Mapper:     &mappers.AuditLogMapper{},
+			Mapper:     &mappers.StorageBucketAuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig),
 				artifact_source.WithRowPerLine(),

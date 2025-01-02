@@ -117,3 +117,70 @@ type AuditLogRequestMetadataDestinationAttributes struct {
 	RegionCode string            `json:"region_code"`
 	Labels     map[string]string `json:"labels" parquet:"type=JSON"`
 }
+
+// Bucket source log
+
+type BucketSourceLogEntry struct {
+		InsertID       *string       `json:"insertId"`
+		LogName        *string       `json:"logName"`
+		ProtoPayload   *ProtoPayload `json:"protoPayload"`
+		ReceiveTimestamp *string     `json:"receiveTimestamp"`
+		Resource       *Resource     `json:"resource"`
+		Severity       *string       `json:"severity"`
+		Timestamp      *string       `json:"timestamp"`
+	}
+	
+	type ProtoPayload struct {
+		Type               *string               `json:"@type"`
+		AuthenticationInfo *AuthenticationInfo   `json:"authenticationInfo"`
+		AuthorizationInfo  *[]AuthorizationInfo  `json:"authorizationInfo"`
+		MethodName         *string               `json:"methodName"`
+		RequestMetadata    *RequestMetadata      `json:"requestMetadata"`
+		ResourceLocation   *ResourceLocation     `json:"resourceLocation"`
+		ResourceName       *string               `json:"resourceName"`
+		ServiceName        *string               `json:"serviceName"`
+		Status             *Status               `json:"status"`
+	}
+	
+	type AuthenticationInfo struct {
+		PrincipalEmail *string `json:"principalEmail"`
+	}
+	
+	type AuthorizationInfo struct {
+		Granted            *bool              `json:"granted"`
+		Permission         *string            `json:"permission"`
+		Resource           *string            `json:"resource"`
+		ResourceAttributes *map[string]string `json:"resourceAttributes"`
+	}
+	
+	type RequestMetadata struct {
+		CallerIP                *string           `json:"callerIp"`
+		CallerSuppliedUserAgent *string           `json:"callerSuppliedUserAgent"`
+		DestinationAttributes   *map[string]string `json:"destinationAttributes"`
+		RequestAttributes       *RequestAttributes `json:"requestAttributes"`
+	}
+	
+	type RequestAttributes struct {
+		Auth *map[string]interface{} `json:"auth"`
+		Time *string                 `json:"time"`
+	}
+	
+	type ResourceLocation struct {
+		CurrentLocations *[]string `json:"currentLocations"`
+	}
+	
+	type Status struct {
+		Code *int `json:"code"`
+		Message *string `json:"message"`
+	}
+	
+	type Resource struct {
+		Labels *ResourceLabels `json:"labels"`
+		Type   *string         `json:"type"`
+	}
+	
+	type ResourceLabels struct {
+		BucketName *string `json:"bucket_name"`
+		Location   *string `json:"location"`
+		ProjectID  *string `json:"project_id"`
+	}
