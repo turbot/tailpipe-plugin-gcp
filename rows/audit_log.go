@@ -3,9 +3,9 @@ package rows
 import (
 	"time"
 
-	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"google.golang.org/genproto/googleapis/cloud/audit"
-	"google.golang.org/genproto/googleapis/rpc/context/attribute_context"
+
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 )
 
 // AuditLog represents an enriched row ready for parquet writing
@@ -23,26 +23,26 @@ type AuditLog struct {
 	SpanId       string    `json:"span_id"`
 
 	// Optional fields
-	ServiceName           *string                     `json:"service_name,omitempty"`
-	MethodName            *string                     `json:"method_name,omitempty"`
-	ResourceName          *string                     `json:"resource_name,omitempty"`
-	ResourceLocation      *AuditLogResourceLocation   `json:"resource_location,omitempty"`
-	AuthenticationInfo    *AuditLogAuthenticationInfo `json:"authentication_info,omitempty"`
-	Status                *AuditLogStatus             `json:"status,omitempty"`
-	Resource              *AuditLogResource           `json:"resource,omitempty"`
-	Operation             *AuditLogOperation          `json:"operation,omitempty"`
-	RequestMetadata       *AuditLogRequestMetadata    `json:"request_metadata,omitempty"`
-	HttpRequest           *AuditLogHttpRequest        `json:"http_request,omitempty"`
-	SourceLocation        *AuditLogSourceLocation     `json:"source_location,omitempty"`
-	Labels                *map[string]string          `json:"labels,omitempty" parquet:"type=JSON"`
-	NumResponseItems      *int64                      `json:"num_response_items,omitempty"`
-	AuthorizationInfo     []*audit.AuthorizationInfo  `json:"authorization_info,omitempty" parquet:"type=JSON"`
-	PolicyViolationInfo   *audit.PolicyViolationInfo  `json:"policy_violation_info,omitempty" parquet:"type=JSON"` // nested map/[]struct
-	ResourceOriginalState interface{}                 `json:"resource_original_state,omitempty" parquet:"type=JSON"`
-	Request               map[string]interface{}      `json:"request,omitempty" parquet:"type=JSON"`
-	Response              map[string]interface{}      `json:"response,omitempty" parquet:"type=JSON"`
-	Metadata              map[string]interface{}      `json:"metadata,omitempty" parquet:"type=JSON"`
-	ServiceData           *map[string]interface{}     `json:"service_data,omitempty" parquet:"type=JSON"`
+	ServiceName           *string                      `json:"service_name,omitempty"`
+	MethodName            *string                      `json:"method_name,omitempty"`
+	ResourceName          *string                      `json:"resource_name,omitempty"`
+	ResourceLocation      *AuditLogResourceLocation    `json:"resource_location,omitempty"`
+	AuthenticationInfo    *AuditLogAuthenticationInfo  `json:"authentication_info,omitempty"`
+	Status                *AuditLogStatus              `json:"status,omitempty"`
+	Resource              *AuditLogResource            `json:"resource,omitempty"`
+	Operation             *AuditLogOperation           `json:"operation,omitempty"`
+	RequestMetadata       *AuditLogRequestMetadata     `json:"request_metadata,omitempty"`
+	HttpRequest           *AuditLogHttpRequest         `json:"http_request,omitempty"`
+	SourceLocation        *AuditLogSourceLocation      `json:"source_location,omitempty"`
+	Labels                *map[string]string           `json:"labels,omitempty" parquet:"type=JSON"`
+	NumResponseItems      *int64                       `json:"num_response_items,omitempty"`
+	AuthorizationInfo     []*AuditLogAuthorizationInfo `json:"authorization_info,omitempty" parquet:"type=JSON"`
+	PolicyViolationInfo   *audit.PolicyViolationInfo   `json:"policy_violation_info,omitempty" parquet:"type=JSON"` // nested map/[]struct
+	ResourceOriginalState interface{}                  `json:"resource_original_state,omitempty" parquet:"type=JSON"`
+	Request               map[string]interface{}       `json:"request,omitempty" parquet:"type=JSON"`
+	Response              map[string]interface{}       `json:"response,omitempty" parquet:"type=JSON"`
+	Metadata              map[string]interface{}       `json:"metadata,omitempty" parquet:"type=JSON"`
+	ServiceData           *map[string]interface{}      `json:"service_data,omitempty" parquet:"type=JSON"`
 }
 
 func NewAuditLog() *AuditLog {
@@ -89,13 +89,14 @@ type AuditLogHttpRequest struct {
 	CacheLookup                    bool                `json:"cache_lookup"`
 	CacheValidatedWithOriginServer bool                `json:"cache_validated_with_origin_server"`
 	CacheFillBytes                 int64               `json:"cache_fill_bytes"`
+	UserAgent                      *string             `json:"user_agent,omitempty"`
 }
 
 type AuditLogRequestMetadata struct {
 	CallerIp                string                                        `json:"caller_ip"`
 	CallerSuppliedUserAgent string                                        `json:"caller_supplied_user_agent"`
 	CallerNetwork           string                                        `json:"caller_network"`
-	RequestAttributes       *attribute_context.AttributeContext_Request   `json:"request_attributes,omitempty" parquet:"type=JSON"`
+	RequestAttributes       *map[string]interface{}                       `json:"request_attributes,omitempty" parquet:"type=JSON"`
 	DestinationAttributes   *AuditLogRequestMetadataDestinationAttributes `json:"destination_attributes,omitempty"`
 }
 
@@ -116,4 +117,10 @@ type AuditLogRequestMetadataDestinationAttributes struct {
 	Principal  string            `json:"principal"`
 	RegionCode string            `json:"region_code"`
 	Labels     map[string]string `json:"labels" parquet:"type=JSON"`
+}
+
+type AuditLogAuthorizationInfo struct {
+	Resource   string `json:"resource"`
+	Permission string `json:"permission"`
+	Granted    bool   `json:"granted"`
 }
