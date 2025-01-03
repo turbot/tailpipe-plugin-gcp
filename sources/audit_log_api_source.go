@@ -74,7 +74,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	filter := s.getLogNameFilter(project, *startTime)
 	collectionState.StartCollection()
 	// TODO: #ratelimit implement rate limiting
-	it := client.Entries(ctx, logadmin.Filter(filter))
+	it := client.Entries(ctx, logadmin.Filter(filter), logadmin.PageSize(250))
 	for {
 		logEntry, err := it.Next()
 		if err != nil && errors.Is(err, iterator.Done) {

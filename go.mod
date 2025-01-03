@@ -4,9 +4,9 @@ go 1.23.1
 
 toolchain go1.23.2
 
-replace github.com/turbot/tailpipe-plugin-sdk => ../tailpipe-plugin-sdk
+replace github.com/turbot/tailpipe-plugin-sdk => ../../tailpipe-plugin-sdk
 
-replace github.com/turbot/pipe-fittings => ../pipe-fittings
+replace github.com/turbot/pipe-fittings => ../../pipe-fittings
 
 require (
 	cloud.google.com/go/logging v1.11.0

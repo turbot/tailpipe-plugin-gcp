@@ -46,7 +46,7 @@ func (c *AuditLogAdminActivityTable) GetSourceMetadata() []*table.SourceMetadata
 		},
 		{
 			SourceName: constants.ArtifactSourceIdentifier,
-			Mapper:     &mappers.AuditLogMapper{},
+			Mapper:     &mappers.StorageBucketAuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig),
 				artifact_source.WithRowPerLine(),

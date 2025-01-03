@@ -3,121 +3,177 @@ package mappers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
+	"google.golang.org/genproto/googleapis/cloud/audit"
 )
 
-type StorageBucketAuditLogMapper struct {
-}
+type StorageBucketAuditLogMapper struct{}
 
 func (m *StorageBucketAuditLogMapper) Identifier() string {
 	return "gcp_storage_bucket_audit_log_mapper"
 }
 
 func (m *StorageBucketAuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*rows.AuditLog]) (*rows.AuditLog, error) {
-	var item rows.BucketSourceLogEntry
+	// var item rows.BucketSourceLogEntry
 
+	// Unmarshal input into `BucketSourceLogEntry`
 	switch v := a.(type) {
 	case string:
-		err := json.Unmarshal([]byte(v), &item)
+		row, err := unmarshalAuditLog([]byte(v))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to unmarshal input string: %w", err)
 		}
+
+		return row, nil
+	default:
+		return nil, fmt.Errorf("unsupported input type: %T", v)
+	}
+}
+
+func unmarshalAuditLog(jsonData []byte) (*rows.AuditLog, error) {
+	// Create a new AuditLog instance
+	auditLog := rows.NewAuditLog()
+
+	// Create a generic map to handle protoPayload and other properties
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(jsonData, &rawData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
-	row := rows.NewAuditLog()
-	row.Timestamp = item.Timestamp
-	row.LogName = item.LogName
-	row.InsertId = item.InsertID
-	row.Severity = item.Severity
+	// Map mandatory fields
+	if timestamp, ok := rawData["timestamp"].(string); ok {
+		parsedTime, err := time.Parse(time.RFC3339, timestamp)
+		if err != nil {
+			return nil, fmt.Errorf("invalid timestamp format: %w", err)
+		}
+		auditLog.Timestamp = parsedTime
+	}
+	auditLog.LogName = getString(rawData["logName"])
+	auditLog.InsertId = getString(rawData["insertId"])
+	
+	auditLog.Severity = getString(rawData["severity"])
 
-	// TODO: Rescale those properties
-	// row.Trace = item.Trace
-	// row.TraceSampled = item.TraceSampled
-	// row.SpanId = item.SpanID
+	// Map optional protoPayload
+	if protoPayload, ok := rawData["protoPayload"].(map[string]interface{}); ok {
+		auditLog.ServiceName = getStringPointer(protoPayload["serviceName"])
+		auditLog.MethodName = getStringPointer(protoPayload["methodName"])
+		auditLog.ResourceName = getStringPointer(protoPayload["resourceName"])
 
-	if item.ProtoPayload != nil {
-		row.ServiceName = item.ProtoPayload.ServiceName
-		row.MethodName = item.ProtoPayload.MethodName
-		row.ResourceName = item.ProtoPayload.ResourceName
-		// row.NumResponseItems = &item.ProtoPayload.NumResponseItems
-
-		if item.ProtoPayload.Status != nil {
-			row.Status = &rows.AuditLogStatus{
-				Code:    int32(*item.ProtoPayload.Status.Code),
-				Message: item.ProtoPayload.Status.Message,
+		// AuthenticationInfo
+		if authInfo, ok := protoPayload["authenticationInfo"].(map[string]interface{}); ok {
+			auditLog.AuthenticationInfo = &rows.AuditLogAuthenticationInfo{
+				PrincipalEmail: getString(authInfo["principalEmail"]),
 			}
 		}
 
-		if item.ProtoPayload.AuthenticationInfo != nil {
-			row.AuthenticationInfo = &rows.AuditLogAuthenticationInfo{
-				PrincipalEmail: *item.ProtoPayload.AuthenticationInfo.PrincipalEmail,
-				// PrincipalSubject:      item.ProtoPayload.AuthenticationInfo.principalSubject,
-				// AuthoritySelector:     payload.AuthenticationInfo.AuthoritySelector,
-				// ServiceAccountKeyName: payload.AuthenticationInfo.ServiceAccountKeyName,
+		// Status
+		if status, ok := protoPayload["status"].(map[string]interface{}); ok {
+			auditLog.Status = &rows.AuditLogStatus{
+				Code:    int32(getInt(status["code"])),
+				Message: getString(status["message"]),
 			}
+		}
 
-			// if payload.AuthenticationInfo.ThirdPartyPrincipal != nil {
-			// 	tpp := payload.AuthenticationInfo.ThirdPartyPrincipal.GetFields()
-			// 	row.AuthenticationInfo.ThirdPartyPrincipal = make(map[string]string, len(tpp))
-			// 	for k, v := range tpp {
-			// 		row.AuthenticationInfo.ThirdPartyPrincipal[k] = v.String()
-			// 	}
-			// }
+		// ResourceLocation
+		if resourceLocation, ok := protoPayload["resourceLocation"].(map[string]interface{}); ok {
+			auditLog.ResourceLocation = &rows.AuditLogResourceLocation{
+				CurrentLocations: getStringSlice(resourceLocation["currentLocations"]),
+			}
+		}
 
-			if payload.AuthenticationInfo.ServiceAccountDelegationInfo != nil {
-				for _, v := range payload.AuthenticationInfo.ServiceAccountDelegationInfo {
-					row.AuthenticationInfo.ServiceAccountDelegationInfo = append(row.AuthenticationInfo.ServiceAccountDelegationInfo, v.PrincipalSubject)
+		// AuthorizationInfo
+		if authInfoSlice, ok := protoPayload["authorizationInfo"].([]interface{}); ok {
+			for _, authInfo := range authInfoSlice {
+				if infoMap, ok := authInfo.(map[string]interface{}); ok {
+					auditLog.AuthorizationInfo = append(auditLog.AuthorizationInfo, &audit.AuthorizationInfo{
+						Permission: getString(infoMap["permission"]),
+					})
 				}
 			}
 		}
 
-		if item.ProtoPayload.RequestMetadata != nil {
-			row.RequestMetadata = &rows.AuditLogRequestMetadata{
-				CallerIp:                *item.ProtoPayload.RequestMetadata.CallerIP,
-				CallerSuppliedUserAgent: *item.ProtoPayload.RequestMetadata.CallerSuppliedUserAgent,
-				// CallerNetwork:           *item.ProtoPayload.RequestMetadata.CallerNetwork,
-				// RequestAttributes:       &attribute_context.AttributeContext_Request{
-				// *item.ProtoPayload.RequestMetadata.RequestAttributes.Auth[""],
+		// Request and Response
+		auditLog.Request = getMap(protoPayload["request"])
+		auditLog.Response = getMap(protoPayload["response"])
+	}
+
+	// Map resource field
+	if resource, ok := rawData["resource"].(map[string]interface{}); ok {
+		auditLog.Resource = &rows.AuditLogResource{
+			Type:   getString(resource["type"]),
+			Labels: getStringMap(resource["labels"]),
+		}
+	}
+
+	// Map labels
+	if labels, ok := rawData["labels"].(map[string]interface{}); ok {
+		auditLog.Labels = &map[string]string{}
+		for k, v := range labels {
+			(*auditLog.Labels)[k] = getString(v)
+		}
+	}
+
+	if auditLog.InsertId == "-k8zmxtd5dic" {
+		slog.Debug("Insert ID found Storage source ==>>", auditLog.InsertId, auditLog)
+	}
+
+	return auditLog, nil
+}
+
+// Helper functions
+
+func getString(value interface{}) string {
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return ""
+}
+
+func getStringPointer(value interface{}) *string {
+	if str, ok := value.(string); ok {
+		return &str
+	}
+	return nil
+}
+
+func getInt(value interface{}) int {
+	if num, ok := value.(float64); ok { // JSON numbers are float64
+		return int(num)
+	}
+	return 0
+}
+
+func getStringSlice(value interface{}) []string {
+	if slice, ok := value.([]interface{}); ok {
+		var result []string
+		for _, item := range slice {
+			if str, ok := item.(string); ok {
+				result = append(result, str)
 			}
+		}
+		return result
+	}
+	return nil
+}
 
-			if item.ProtoPayload.RequestMetadata.DestinationAttributes != nil {
-				row.RequestMetadata.DestinationAttributes = &rows.AuditLogRequestMetadataDestinationAttributes{
-					Ip:         &item.ProtoPayload.RequestMetadata.DestinationAttributes["ip"],
-					Port:       payload.RequestMetadata.DestinationAttributes.Port,
-					Principal:  payload.RequestMetadata.DestinationAttributes.Principal,
-					RegionCode: payload.RequestMetadata.DestinationAttributes.RegionCode,
-					Labels:     payload.RequestMetadata.DestinationAttributes.Labels,
-				}
-			}
+func getStringMap(value interface{}) map[string]string {
+	result := make(map[string]string)
+	if rawMap, ok := value.(map[string]interface{}); ok {
+		for k, v := range rawMap {
+			result[k] = getString(v)
 		}
 	}
+	return result
+}
 
-	// resource
-	if item.Resource != nil {
-		row.Resource = &rows.AuditLogResource{
-			Type:   item.Resource.Type,
-			Labels: *item.Resource.Labels,
-		}
+func getMap(value interface{}) map[string]interface{} {
+	if m, ok := value.(map[string]interface{}); ok {
+		return m
 	}
-
-	// labels
-	if item.Labels != nil {
-		row.Labels = &item.Labels
-	}
-
-	slog.Debug("Payload of storage bucket source service name: ", row.ServiceName, "condition satisfied.")
-
-	// source location
-	if item.SourceLocation != nil {
-		row.SourceLocation = &rows.AuditLogSourceLocation{
-			File:     item.SourceLocation.File,
-			Line:     item.SourceLocation.Line,
-			Function: item.SourceLocation.Function,
-		}
-	}
-
-	return row, nil
+	return nil
 }

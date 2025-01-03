@@ -42,7 +42,7 @@ type AuditLog struct {
 	Request               map[string]interface{}      `json:"request,omitempty" parquet:"type=JSON"`
 	Response              map[string]interface{}      `json:"response,omitempty" parquet:"type=JSON"`
 	Metadata              map[string]interface{}      `json:"metadata,omitempty" parquet:"type=JSON"`
-	ServiceData           map[string]interface{}      `json:"service_data,omitempty" parquet:"type=JSON"`
+	ServiceData           *map[string]interface{}      `json:"service_data,omitempty" parquet:"type=JSON"`
 }
 
 func NewAuditLog() *AuditLog {
@@ -121,66 +121,71 @@ type AuditLogRequestMetadataDestinationAttributes struct {
 // Bucket source log
 
 type BucketSourceLogEntry struct {
-		InsertID       *string       `json:"insertId"`
-		LogName        *string       `json:"logName"`
-		ProtoPayload   *ProtoPayload `json:"protoPayload"`
-		ReceiveTimestamp *string     `json:"receiveTimestamp"`
-		Resource       *Resource     `json:"resource"`
-		Severity       *string       `json:"severity"`
-		Timestamp      *string       `json:"timestamp"`
-	}
-	
-	type ProtoPayload struct {
-		Type               *string               `json:"@type"`
-		AuthenticationInfo *AuthenticationInfo   `json:"authenticationInfo"`
-		AuthorizationInfo  *[]AuthorizationInfo  `json:"authorizationInfo"`
-		MethodName         *string               `json:"methodName"`
-		RequestMetadata    *RequestMetadata      `json:"requestMetadata"`
-		ResourceLocation   *ResourceLocation     `json:"resourceLocation"`
-		ResourceName       *string               `json:"resourceName"`
-		ServiceName        *string               `json:"serviceName"`
-		Status             *Status               `json:"status"`
-	}
-	
-	type AuthenticationInfo struct {
-		PrincipalEmail *string `json:"principalEmail"`
-	}
-	
-	type AuthorizationInfo struct {
-		Granted            *bool              `json:"granted"`
-		Permission         *string            `json:"permission"`
-		Resource           *string            `json:"resource"`
-		ResourceAttributes *map[string]string `json:"resourceAttributes"`
-	}
-	
-	type RequestMetadata struct {
-		CallerIP                *string           `json:"callerIp"`
-		CallerSuppliedUserAgent *string           `json:"callerSuppliedUserAgent"`
-		DestinationAttributes   *map[string]string `json:"destinationAttributes"`
-		RequestAttributes       *RequestAttributes `json:"requestAttributes"`
-	}
-	
-	type RequestAttributes struct {
-		Auth *map[string]interface{} `json:"auth"`
-		Time *string                 `json:"time"`
-	}
-	
-	type ResourceLocation struct {
-		CurrentLocations *[]string `json:"currentLocations"`
-	}
-	
-	type Status struct {
-		Code *int `json:"code"`
-		Message *string `json:"message"`
-	}
-	
-	type Resource struct {
-		Labels *ResourceLabels `json:"labels"`
-		Type   *string         `json:"type"`
-	}
-	
-	type ResourceLabels struct {
-		BucketName *string `json:"bucket_name"`
-		Location   *string `json:"location"`
-		ProjectID  *string `json:"project_id"`
-	}
+	InsertID         *string       `json:"insertId"`
+	LogName          string        `json:"logName"`
+	ProtoPayload     *ProtoPayload `json:"protoPayload"`
+	ReceiveTimestamp string        `json:"receiveTimestamp"`
+	Resource         *Resource     `json:"resource"`
+	Severity         string        `json:"severity"`
+	Timestamp        time.Time     `json:"timestamp"`
+}
+
+type ProtoPayload struct {
+	Type               *string              `json:"@type"`
+	AuthenticationInfo *AuthenticationInfo  `json:"authenticationInfo"`
+	AuthorizationInfo  *[]AuthorizationInfo `json:"authorizationInfo"`
+	MethodName         *string              `json:"methodName"`
+	RequestMetadata    *RequestMetadata     `json:"requestMetadata"`
+	ResourceLocation   *ResourceLocation    `json:"resourceLocation"`
+	ResourceName       *string              `json:"resourceName"`
+	ServiceName        *string              `json:"serviceName"`
+	Status             *Status              `json:"status"`
+}
+
+type AuthenticationInfo struct {
+	PrincipalEmail               *string           `json:"principalEmail"`
+	PrincipalSubject             string            `json:"principal_subject"`
+	AuthoritySelector            string            `json:"authority_selector"`
+	ServiceAccountKeyName        string            `json:"service_account_key_name"`
+	ThirdPartyPrincipal          map[string]string `json:"third_party_principal,omitempty" parquet:"type=JSON"`
+	ServiceAccountDelegationInfo []string          `json:"service_account_delegation_info,omitempty" parquet:"type=JSON"`
+}
+
+type AuthorizationInfo struct {
+	Granted            *bool              `json:"granted"`
+	Permission         *string            `json:"permission"`
+	Resource           *string            `json:"resource"`
+	ResourceAttributes *map[string]string `json:"resourceAttributes"`
+}
+
+type RequestMetadata struct {
+	CallerIP                *string            `json:"callerIp"`
+	CallerSuppliedUserAgent *string            `json:"callerSuppliedUserAgent"`
+	DestinationAttributes   *map[string]string `json:"destinationAttributes"`
+	RequestAttributes       *RequestAttributes `json:"requestAttributes"`
+}
+
+type RequestAttributes struct {
+	Auth *map[string]interface{} `json:"auth"`
+	Time *string                 `json:"time"`
+}
+
+type ResourceLocation struct {
+	CurrentLocations *[]string `json:"currentLocations"`
+}
+
+type Status struct {
+	Code    *int    `json:"code"`
+	Message *string `json:"message"`
+}
+
+type Resource struct {
+	Labels *map[string]string `json:"labels"`
+	Type   *string         `json:"type"`
+}
+
+type ResourceLabels struct {
+	BucketName *string `json:"bucket_name"`
+	Location   *string `json:"location"`
+	ProjectID  *string `json:"project_id"`
+}
