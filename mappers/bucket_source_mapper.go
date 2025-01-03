@@ -55,7 +55,7 @@ func unmarshalAuditLog(jsonData []byte) (*rows.AuditLog, error) {
 	}
 	auditLog.LogName = getString(rawData["logName"])
 	auditLog.InsertId = getString(rawData["insertId"])
-	
+
 	auditLog.Severity = getString(rawData["severity"])
 
 	// Map optional protoPayload
@@ -83,6 +83,24 @@ func unmarshalAuditLog(jsonData []byte) (*rows.AuditLog, error) {
 		if resourceLocation, ok := protoPayload["resourceLocation"].(map[string]interface{}); ok {
 			auditLog.ResourceLocation = &rows.AuditLogResourceLocation{
 				CurrentLocations: getStringSlice(resourceLocation["currentLocations"]),
+			}
+		}
+
+		// Request_metadata
+		if requestMetadata, ok := protoPayload["resource"].(map[string]interface{}); ok {
+
+			auditLog.RequestMetadata = &rows.AuditLogRequestMetadata{
+				CallerIp:                getString(requestMetadata["callerIp"]),
+				CallerSuppliedUserAgent: getString(requestMetadata["callerSuppliedUserAgent"]),
+			}
+
+			if destinationAttr, ok := requestMetadata["destinationAttributes"].(map[string]interface{}); ok {
+				destAttribute := &rows.AuditLogRequestMetadataDestinationAttributes{
+					Ip:        getString(destinationAttr["ip"]),
+					Port:      int64(getInt(destinationAttr["port"])),
+					Principal: getString(destinationAttr["principal"]),
+				}
+				auditLog.RequestMetadata.DestinationAttributes = destAttribute
 			}
 		}
 
