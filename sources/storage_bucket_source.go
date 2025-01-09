@@ -10,13 +10,14 @@ import (
 	"path"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
+
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/config_data"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
-	"google.golang.org/api/iterator"
 )
 
 const GcpStorageBucketSourceIdentifier = "gcp_storage_bucket"
