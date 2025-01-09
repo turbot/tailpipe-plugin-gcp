@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
 )
 

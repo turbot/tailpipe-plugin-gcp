@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
+	"google.golang.org/api/iterator"
+
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
 	"github.com/turbot/tailpipe-plugin-sdk/config_data"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
-	"google.golang.org/api/iterator"
 )
 
 const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
@@ -25,8 +27,6 @@ func init() {
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
 	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *config.GcpConnection]
-
-	LogType string
 }
 
 func (s *AuditLogAPISource) Init(ctx context.Context, configData, connectionData config_data.ConfigData, opts ...row_source.RowSourceOption) error {
@@ -49,6 +49,10 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 
 	startTime := collectionState.GetLatestEndTime()
 	project := s.Connection.GetProject()
+	var logTypes []string
+	if s.Config != nil && s.Config.LogTypes != nil {
+		logTypes = s.Config.LogTypes
+	}
 
 	client, err := s.getClient(ctx, project)
 	if err != nil {
@@ -71,7 +75,7 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		},
 	}
 
-	filter := s.getLogNameFilter(project, *startTime)
+	filter := s.getLogNameFilter(project, logTypes, *startTime)
 	collectionState.StartCollection()
 	// TODO: #ratelimit implement rate limiting
 	it := client.Entries(ctx, logadmin.Filter(filter), logadmin.PageSize(250))
@@ -128,27 +132,35 @@ func (s *AuditLogAPISource) getClient(ctx context.Context, project string) (*log
 	return client, nil
 }
 
-func (s *AuditLogAPISource) getLogNameFilter(project string, startTime time.Time) string {
-	var logGroup string
+func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
+	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
+	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
+	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
 	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 
-	switch s.LogType {
-	case "activity", "data_access", "system_event":
-		logGroup = fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%s%s"`, project, "%2F", s.LogType)
-	default:
-		logGroup = s.LogType
+	// short-circuit default
+	if len(logTypes) == 0 {
+		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
 	}
 
-	return fmt.Sprintf("logName=%s %s", logGroup, timePart)
-}
-
-func WithLogType(logType string) row_source.RowSourceOption {
-	return func(source row_source.RowSource) error {
-		rowSource, ok := source.(*AuditLogAPISource)
-		if !ok {
-			return errors.New("invalid source type")
+	var selected []string
+	for _, logType := range logTypes {
+		switch logType {
+		case "activity":
+			selected = append(selected, activity)
+		case "data_access":
+			selected = append(selected, dataAccess)
+		case "system_event":
+			selected = append(selected, systemEvent)
 		}
-		rowSource.LogType = logType
-		return nil
+	}
+
+	switch len(selected) {
+	case 0:
+		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
+	case 1:
+		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
+	default:
+		return fmt.Sprintf("logName=(%s) %s", strings.Join(selected, " OR "), timePart)
 	}
 }
