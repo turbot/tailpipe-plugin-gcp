@@ -12,7 +12,6 @@ import (
 
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
-	"github.com/turbot/tailpipe-plugin-sdk/config_data"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
@@ -29,7 +28,7 @@ type AuditLogAPISource struct {
 	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *config.GcpConnection]
 }
 
-func (s *AuditLogAPISource) Init(ctx context.Context, configData, connectionData config_data.ConfigData, opts ...row_source.RowSourceOption) error {
+func (s *AuditLogAPISource) Init(ctx context.Context, configData, connectionData types.ConfigData, opts ...row_source.RowSourceOption) error {
 	// set the collection state ctor
 	s.NewCollectionStateFunc = collection_state.NewTimeRangeCollectionState
 
