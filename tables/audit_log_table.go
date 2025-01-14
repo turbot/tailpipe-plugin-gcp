@@ -31,14 +31,22 @@ func (c *AuditLogTable) Identifier() string {
 }
 
 func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*rows.AuditLog] {
-	defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigBase{
-		FileLayout: utils.ToStringPointer("cloudaudit\\.googleapis\\.com/(?P<type>\\w+)/(?P<year>\\d{4})/(?P<month>\\d{2})/(?P<day>\\d{2})/(?P<hour>\\d{2}).*\\.json"),
+	defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigImpl{
+		FileLayout: utils.ToStringPointer("cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json"),
 	}
 
 	return []*table.SourceMetadata[*rows.AuditLog]{
 		{
 			SourceName: sources.AuditLogAPISourceIdentifier,
 			Mapper:     &mappers.AuditLogMapper{},
+		},
+		{
+			SourceName: sources.GcpStorageBucketSourceIdentifier,
+			Mapper:     &mappers.AuditLogMapper{},
+			Options: []row_source.RowSourceOption{
+				artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig),
+				artifact_source.WithRowPerLine(),
+			},
 		},
 		{
 			SourceName: constants.ArtifactSourceIdentifier,

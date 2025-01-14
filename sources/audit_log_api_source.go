@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
 	"google.golang.org/api/iterator"
 
@@ -28,12 +29,12 @@ type AuditLogAPISource struct {
 	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *config.GcpConnection]
 }
 
-func (s *AuditLogAPISource) Init(ctx context.Context, configData, connectionData types.ConfigData, opts ...row_source.RowSourceOption) error {
+func (s *AuditLogAPISource) Init(ctx context.Context, params *row_source.RowSourceParams, opts ...row_source.RowSourceOption) error {
 	// set the collection state ctor
 	s.NewCollectionStateFunc = collection_state.NewTimeRangeCollectionState
 
 	// call base init
-	return s.RowSourceImpl.Init(ctx, configData, connectionData, opts...)
+	return s.RowSourceImpl.Init(ctx, params, opts...)
 }
 
 func (s *AuditLogAPISource) Identifier() string {
@@ -41,12 +42,6 @@ func (s *AuditLogAPISource) Identifier() string {
 }
 
 func (s *AuditLogAPISource) Collect(ctx context.Context) error {
-	collectionState := s.CollectionState.(*collection_state.TimeRangeCollectionState[*AuditLogAPISourceConfig])
-	// TODO: #config the below should be settable via a config option
-	collectionState.IsChronological = true
-	collectionState.HasContinuation = true
-
-	startTime := collectionState.GetLatestEndTime()
 	project := s.Connection.GetProject()
 	var logTypes []string
 	if s.Config != nil && s.Config.LogTypes != nil {
@@ -59,12 +54,6 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 	}
 	defer client.Close()
 
-	if startTime == nil {
-		// TODO: #config figure out how to determine an appropriate start time if collectionState doesn't provide one, defaulting to 30 days in meantime
-		st := time.Now().Add(-720 * time.Hour)
-		startTime = &st
-	}
-
 	sourceName := AuditLogAPISourceIdentifier
 	sourceEnrichmentFields := &schema.SourceEnrichment{
 		CommonFields: schema.CommonFields{
@@ -74,12 +63,13 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		},
 	}
 
-	filter := s.getLogNameFilter(project, logTypes, *startTime)
-	collectionState.StartCollection()
+	filter := s.getLogNameFilter(project, logTypes, s.FromTime)
+
 	// TODO: #ratelimit implement rate limiting
+	var logEntry *logging.Entry
 	it := client.Entries(ctx, logadmin.Filter(filter), logadmin.PageSize(250))
 	for {
-		logEntry, err := it.Next()
+		logEntry, err = it.Next()
 		if err != nil && errors.Is(err, iterator.Done) {
 			break
 		}
@@ -88,27 +78,21 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry != nil {
-			if collectionState.ShouldCollectRow(logEntry.Timestamp, logEntry.InsertID) {
+			if s.CollectionState.ShouldCollect(logEntry.InsertID, logEntry.Timestamp) {
 				row := &types.RowData{
 					Data:             *logEntry,
 					SourceEnrichment: sourceEnrichmentFields,
 				}
 
-				// update collection state
-				collectionState.Upsert(logEntry.Timestamp, logEntry.InsertID, nil)
-				collectionStateJSON, err := s.GetCollectionStateJSON()
-				if err != nil {
-					return fmt.Errorf("error serialising collectionState data: %w", err)
+				if err = s.CollectionState.OnCollected(logEntry.InsertID, logEntry.Timestamp); err != nil {
+					return fmt.Errorf("error updating collection state: %w", err)
 				}
-
-				if err := s.OnRow(ctx, row, collectionStateJSON); err != nil {
+				if err = s.OnRow(ctx, row); err != nil {
 					return fmt.Errorf("error processing row: %w", err)
 				}
 			}
 		}
 	}
-
-	collectionState.EndCollection()
 
 	return nil
 }

@@ -5,17 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path"
 
 	"cloud.google.com/go/storage"
+	"github.com/elastic/go-grok"
 	"google.golang.org/api/iterator"
 
+	"github.com/turbot/pipe-fittings/filter"
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
-	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
 
@@ -30,18 +32,15 @@ func init() {
 type GcpStorageBucketSource struct {
 	artifact_source.ArtifactSourceImpl[*GcpStorageBucketSourceConfig, *config.GcpConnection]
 
-	Extensions types.ExtensionLookup
-	client     *storage.Client
+	client    *storage.Client
+	errorList []error
 }
 
-func (s *GcpStorageBucketSource) Init(ctx context.Context, configData, connectionData types.ConfigData, opts ...row_source.RowSourceOption) error {
+func (s *GcpStorageBucketSource) Init(ctx context.Context, params *row_source.RowSourceParams, opts ...row_source.RowSourceOption) error {
 	// call base to parse config and apply options
-	if err := s.ArtifactSourceImpl.Init(ctx, configData, connectionData, opts...); err != nil {
+	if err := s.ArtifactSourceImpl.Init(ctx, params, opts...); err != nil {
 		return err
 	}
-
-	s.TmpDir = path.Join(artifact_source.BaseTmpDir, fmt.Sprintf("gcp-storage-%s", s.Config.Bucket))
-	s.Extensions = types.NewExtensionLookup(s.Config.Extensions)
 
 	client, err := s.getClient(ctx)
 	if err != nil {
@@ -49,7 +48,9 @@ func (s *GcpStorageBucketSource) Init(ctx context.Context, configData, connectio
 	}
 	s.client = client
 
-	slog.Info("Initialized GcpStorageBucketSource", "bucket", s.Config.Bucket, "prefix", s.Config.Prefix, "extensions", s.Extensions)
+	s.errorList = []error{}
+
+	slog.Info("Initialized GcpStorageBucketSource", "bucket", s.Config.Bucket, "layout", s.Config.FileLayout)
 	return nil
 }
 
@@ -58,50 +59,35 @@ func (s *GcpStorageBucketSource) Identifier() string {
 }
 
 func (s *GcpStorageBucketSource) Close() error {
+	_ = os.RemoveAll(s.TempDir)
 	return s.client.Close()
 }
 
 func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
-	bucket := s.client.Bucket(s.Config.Bucket)
-	query := &storage.Query{
-		Prefix:      s.Config.Prefix,
-		SoftDeleted: false,
+	layout := s.Config.FileLayout
+	filterMap := make(map[string]*filter.SqlFilter)
+	g := grok.New()
+	// add any patterns defined in config
+	err := g.AddPatterns(s.Config.GetPatterns())
+	if err != nil {
+		return fmt.Errorf("error adding grok patterns: %v", err)
 	}
 
-	objectIterator := bucket.Objects(ctx, query)
-	for {
-		obj, err := objectIterator.Next()
-		if err != nil {
-			if errors.Is(err, iterator.Done) {
-				break
-			} else {
-				return fmt.Errorf("failed to list objects in bucket: %s", err.Error())
-			}
-		}
-		objPath := obj.Name
-		if s.Extensions.IsValid(objPath) {
-			sourceEnrichmentFields := &schema.SourceEnrichment{
-				CommonFields: schema.CommonFields{
-					TpSourceLocation: &objPath,
-					TpSourceName:     &s.Config.Bucket,
-					TpSourceType:     GcpStorageBucketSourceIdentifier,
-				},
-			}
-
-			info := &types.ArtifactInfo{Name: objPath, OriginalName: objPath, SourceEnrichment: sourceEnrichmentFields}
-
-			if err := s.OnArtifactDiscovered(ctx, info); err != nil {
-				// TODO: #error should we continue or fail?
-				return fmt.Errorf("failed to notify observers of discovered artifact, %w", err)
-			}
-		}
+	err = s.walk(ctx, s.Config.Bucket, s.Config.Prefix, layout, filterMap, g)
+	if err != nil {
+		s.errorList = append(s.errorList, fmt.Errorf("error discovering artifacts in GCP storage bucket %s, %w", s.Config.Bucket, err))
 	}
+
+	if len(s.errorList) > 0 {
+		return errors.Join(s.errorList...)
+	}
+
 	return nil
 }
 
 func (s *GcpStorageBucketSource) DownloadArtifact(ctx context.Context, info *types.ArtifactInfo) error {
 	bucket := s.client.Bucket(s.Config.Bucket)
-	obj := bucket.Object(info.Name)
+	obj := bucket.Object(info.LocalName)
 
 	reader, err := obj.NewReader(ctx)
 	if err != nil {
@@ -109,7 +95,7 @@ func (s *GcpStorageBucketSource) DownloadArtifact(ctx context.Context, info *typ
 	}
 	defer reader.Close()
 
-	localFilePath := path.Join(s.TmpDir, info.Name)
+	localFilePath := path.Join(s.TempDir, info.LocalName)
 	if err := os.MkdirAll(path.Dir(localFilePath), 0755); err != nil {
 		return fmt.Errorf("failed to create directory for file, %w", err)
 	}
@@ -120,13 +106,12 @@ func (s *GcpStorageBucketSource) DownloadArtifact(ctx context.Context, info *typ
 	}
 	defer outFile.Close()
 
-	if _, err := io.Copy(outFile, reader); err != nil {
+	if _, err = io.Copy(outFile, reader); err != nil {
 		return fmt.Errorf("failed to write data to file, %w", err)
 	}
 
-	downloadInfo := &types.ArtifactInfo{Name: localFilePath, OriginalName: info.Name, SourceEnrichment: info.SourceEnrichment}
+	downloadInfo := &types.ArtifactInfo{LocalName: localFilePath, OriginalName: info.OriginalName, SourceEnrichment: info.SourceEnrichment}
 
-	// TODO: #delta create collection state data https://github.com/turbot/tailpipe-plugin-sdk/issues/13
 	return s.OnArtifactDownloaded(ctx, downloadInfo)
 }
 
@@ -142,4 +127,52 @@ func (s *GcpStorageBucketSource) getClient(ctx context.Context) (*storage.Client
 	}
 
 	return client, nil
+}
+
+func (s *GcpStorageBucketSource) walk(ctx context.Context, bucket string, prefix string, layout *string, filterMap map[string]*filter.SqlFilter, g *grok.Grok) error {
+	bkt := s.client.Bucket(bucket)
+	query := &storage.Query{
+		Prefix:    prefix,
+		Delimiter: "/", // Treat '/' as directory separator
+	}
+
+	// List objects and prefixes
+	it := bkt.Objects(ctx, query)
+	for {
+		objAttrs, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error getting interating next objects, %w", err)
+		}
+
+		// Directories
+		if objAttrs.Prefix != "" {
+			// Process the directory node
+			err = s.WalkNode(ctx, objAttrs.Prefix, "", layout, true, g, filterMap)
+			if err != nil {
+				if errors.Is(err, fs.SkipDir) {
+					continue
+				} else {
+					return fmt.Errorf("error walking node, %w", err)
+				}
+			}
+			err = s.walk(ctx, bucket, objAttrs.Prefix, layout, filterMap, g)
+			if err != nil {
+				s.errorList = append(s.errorList, err)
+			}
+		}
+
+		// Files
+		if objAttrs.Prefix == "" {
+			// Process the file node
+			err = s.WalkNode(ctx, objAttrs.Name, "", layout, false, g, filterMap)
+			if err != nil {
+				s.errorList = append(s.errorList, fmt.Errorf("error parsing object %s, %w", objAttrs.Name, err))
+			}
+		}
+	}
+
+	return nil
 }

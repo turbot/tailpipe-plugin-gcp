@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -274,7 +275,28 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 		row.ServiceName = &log.ProtoPayload.ServiceName
 		row.MethodName = &log.ProtoPayload.MethodName
 		row.ResourceName = &log.ProtoPayload.ResourceName
-		row.NumResponseItems = log.ProtoPayload.NumResponseItems
+		if log.ProtoPayload.NumResponseItems != nil {
+			switch v := log.ProtoPayload.NumResponseItems.(type) {
+			case int64:
+				row.NumResponseItems = &v
+			case *int64:
+				row.NumResponseItems = v
+			case int:
+				i := int64(v)
+				row.NumResponseItems = &i
+			case int16:
+				i := int64(v)
+				row.NumResponseItems = &i
+			case int32:
+				i := int64(v)
+				row.NumResponseItems = &i
+			case string:
+				i, conErr := strconv.ParseInt(v, 10, 64)
+				if conErr == nil {
+					row.NumResponseItems = &i
+				}
+			}
+		}
 
 		if log.ProtoPayload.Status != nil {
 			row.Status = &rows.AuditLogStatus{
@@ -463,7 +485,7 @@ type protoPayload struct {
 	Metadata              map[string]any      `json:"metadata,omitempty"`
 	ServiceData           map[string]any      `json:"serviceData,omitempty"`
 	ResourceLocation      *resourceLocation   `json:"resourceLocation,omitempty"`
-	NumResponseItems      *int64              `json:"numResponseItems,omitempty"`
+	NumResponseItems      any                 `json:"numResponseItems,omitempty"`
 	ResourceOriginalState map[string]any      `json:"resourceOriginalState,omitempty"`
 }
 
