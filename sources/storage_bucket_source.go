@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/elastic/go-grok"
@@ -64,8 +65,10 @@ func (s *GcpStorageBucketSource) Close() error {
 }
 
 func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
+	var prefix string
 	layout := s.Config.FileLayout
 	filterMap := make(map[string]*filter.SqlFilter)
+
 	g := grok.New()
 	// add any patterns defined in config
 	err := g.AddPatterns(s.Config.GetPatterns())
@@ -73,7 +76,18 @@ func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
 		return fmt.Errorf("error adding grok patterns: %v", err)
 	}
 
-	err = s.walk(ctx, s.Config.Bucket, s.Config.Prefix, layout, filterMap, g)
+	if s.Config.Prefix != nil {
+		prefix = *s.Config.Prefix
+		if !strings.HasSuffix(prefix, "/") {
+			prefix = prefix + "/"
+		}
+		if layout != nil {
+			t := fmt.Sprintf("%s%s", prefix, *layout)
+			layout = &t
+		}
+	}
+
+	err = s.walk(ctx, s.Config.Bucket, prefix, layout, filterMap, g)
 	if err != nil {
 		s.errorList = append(s.errorList, fmt.Errorf("error discovering artifacts in GCP storage bucket %s, %w", s.Config.Bucket, err))
 	}

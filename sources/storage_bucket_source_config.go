@@ -14,8 +14,8 @@ type GcpStorageBucketSourceConfig struct {
 	// required to allow partial decoding
 	Remain hcl.Body `hcl:",remain" json:"-"`
 
-	Bucket string `hcl:"bucket"`
-	Prefix string `hcl:"prefix,optional"`
+	Bucket string  `hcl:"bucket"`
+	Prefix *string `hcl:"prefix,optional"`
 }
 
 func (g *GcpStorageBucketSourceConfig) Validate() error {
