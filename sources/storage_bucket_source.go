@@ -15,6 +15,7 @@ import (
 	"github.com/elastic/go-grok"
 	"google.golang.org/api/iterator"
 
+	typehelpers "github.com/turbot/go-kit/types"
 	"github.com/turbot/pipe-fittings/filter"
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
@@ -66,7 +67,10 @@ func (s *GcpStorageBucketSource) Close() error {
 
 func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
 	var prefix string
-	layout := s.Config.FileLayout
+	layout := typehelpers.SafeString(s.Config.GetFileLayout())
+	// if there are any optional segments, we expand them into all possible alternatives
+	optionalLayouts := artifact_source.ExpandPatternIntoOptionalAlternatives(layout)
+
 	filterMap := make(map[string]*filter.SqlFilter)
 
 	g := grok.New()
@@ -81,13 +85,14 @@ func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
 		if !strings.HasSuffix(prefix, "/") {
 			prefix = prefix + "/"
 		}
-		if layout != nil {
-			t := fmt.Sprintf("%s%s", prefix, *layout)
-			layout = &t
+		var newOptionalLayouts []string
+		for _, l := range optionalLayouts {
+			newOptionalLayouts = append(newOptionalLayouts, fmt.Sprintf("%s%s", prefix, l))
 		}
+		optionalLayouts = newOptionalLayouts
 	}
 
-	err = s.walk(ctx, s.Config.Bucket, prefix, layout, filterMap, g)
+	err = s.walk(ctx, s.Config.Bucket, prefix, optionalLayouts, filterMap, g)
 	if err != nil {
 		s.errorList = append(s.errorList, fmt.Errorf("error discovering artifacts in GCP storage bucket %s, %w", s.Config.Bucket, err))
 	}
@@ -143,7 +148,7 @@ func (s *GcpStorageBucketSource) getClient(ctx context.Context) (*storage.Client
 	return client, nil
 }
 
-func (s *GcpStorageBucketSource) walk(ctx context.Context, bucket string, prefix string, layout *string, filterMap map[string]*filter.SqlFilter, g *grok.Grok) error {
+func (s *GcpStorageBucketSource) walk(ctx context.Context, bucket string, prefix string, layouts []string, filterMap map[string]*filter.SqlFilter, g *grok.Grok) error {
 	bkt := s.client.Bucket(bucket)
 	query := &storage.Query{
 		Prefix:    prefix,
@@ -164,7 +169,7 @@ func (s *GcpStorageBucketSource) walk(ctx context.Context, bucket string, prefix
 		// Directories
 		if objAttrs.Prefix != "" {
 			// Process the directory node
-			err = s.WalkNode(ctx, objAttrs.Prefix, "", layout, true, g, filterMap)
+			err = s.WalkNode(ctx, objAttrs.Prefix, "", layouts, true, g, filterMap)
 			if err != nil {
 				if errors.Is(err, fs.SkipDir) {
 					continue
@@ -172,7 +177,7 @@ func (s *GcpStorageBucketSource) walk(ctx context.Context, bucket string, prefix
 					return fmt.Errorf("error walking node, %w", err)
 				}
 			}
-			err = s.walk(ctx, bucket, objAttrs.Prefix, layout, filterMap, g)
+			err = s.walk(ctx, bucket, objAttrs.Prefix, layouts, filterMap, g)
 			if err != nil {
 				s.errorList = append(s.errorList, err)
 			}
@@ -181,7 +186,7 @@ func (s *GcpStorageBucketSource) walk(ctx context.Context, bucket string, prefix
 		// Files
 		if objAttrs.Prefix == "" {
 			// Process the file node
-			err = s.WalkNode(ctx, objAttrs.Name, "", layout, false, g, filterMap)
+			err = s.WalkNode(ctx, objAttrs.Name, "", layouts, false, g, filterMap)
 			if err != nil {
 				s.errorList = append(s.errorList, fmt.Errorf("error parsing object %s, %w", objAttrs.Name, err))
 			}
