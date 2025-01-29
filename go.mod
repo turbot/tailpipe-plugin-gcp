@@ -4,10 +4,6 @@ go 1.23.1
 
 toolchain go1.23.2
 
-replace github.com/turbot/tailpipe-plugin-sdk => ../tailpipe-plugin-sdk
-
-replace github.com/turbot/pipe-fittings => ../pipe-fittings
-
 require (
 	cloud.google.com/go/logging v1.11.0
 	cloud.google.com/go/storage v1.42.0
@@ -16,8 +12,8 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rs/xid v1.5.0
 	github.com/turbot/go-kit v0.10.0-rc.0
-	github.com/turbot/pipe-fittings v1.4.1
-	github.com/turbot/tailpipe-plugin-sdk v0.0.0
+	github.com/turbot/pipe-fittings/v2 v2.0.0-rc.1
+	github.com/turbot/tailpipe-plugin-sdk v0.1.0-rc.0
 	golang.org/x/oauth2 v0.22.0
 	google.golang.org/api v0.189.0
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade
