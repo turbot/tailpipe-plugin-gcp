@@ -97,3 +97,7 @@ func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields sch
 
 	return row, nil
 }
+
+func (c *AuditLogTable) GetDescription() string {
+	return "GCP Audit Logs track administrative and data access activities across Google Cloud services, capturing user actions and system events for security and compliance monitoring."
+}

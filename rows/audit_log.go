@@ -123,3 +123,39 @@ type AuditLogAuthorizationInfo struct {
 	Permission string `json:"permission"`
 	Granted    bool   `json:"granted"`
 }
+
+func (a *AuditLog) GetColumnDescriptions() map[string]string {
+	return map[string]string{
+		"timestamp":               "The date and time when the event occurred, in ISO 8601 format.",
+		"log_name":                "The name of the log that recorded the event, indicating the type of log (e.g., 'cloudaudit.googleapis.com/activity').",
+		"insert_id":               "A unique identifier for the log entry, used to prevent duplicate log entries.",
+		"severity":                "The severity level of the log entry (e.g., 'INFO', 'WARNING', 'ERROR', 'CRITICAL').",
+		"trace":                   "The unique trace ID associated with the request, used for distributed tracing.",
+		"trace_sampled":           "Indicates whether the request trace was sampled for analysis (true or false).",
+		"span_id":                 "The span ID for the request, used in distributed tracing to identify specific operations.",
+		"service_name":            "The Google Cloud service that handled the request, such as 'compute.googleapis.com'.",
+		"method_name":             "The API method or operation that was invoked, such as 'google.iam.v1.GetPolicy'.",
+		"resource_name":           "The full resource name of the affected Google Cloud resource, in the format 'projects/123456789012/buckets/my-bucket'.",
+		"resource_location":       "The geographic location of the affected resource, if applicable.",
+		"authentication_info":     "Details about the authenticated user or service account that made the request.",
+		"status":                  "The status of the request, including error codes if the request failed.",
+		"resource":                "Detailed metadata about the affected resource, such as type and labels.",
+		"operation":               "Information about the larger operation that this event is a part of, if applicable.",
+		"request_metadata":        "Metadata about the request, including caller IP and user agent.",
+		"http_request":            "Details about the HTTP request associated with the log entry, if applicable.",
+		"source_location":         "The location in the source code where the request originated, if available.",
+		"labels":                  "Key-value labels associated with the log entry for filtering and analysis.",
+		"num_response_items":      "The number of items returned in the response, if applicable.",
+		"authorization_info":      "Details about the authorization checks performed for the request, including granted and denied permissions.",
+		"policy_violation_info":   "Information about any policy violations detected in the request.",
+		"resource_original_state": "The original state of the resource before the request was processed, if available.",
+		"request":                 "The request parameters sent with the API call, in JSON format.",
+		"response":                "The response data returned by the service, in JSON format.",
+		"metadata":                "Additional metadata related to the log entry, in JSON format.",
+		"service_data":            "Additional service-specific data related to the event, in JSON format.",
+
+		// Override table specific tp_* column descriptions
+		"tp_index": "The GCP project.",
+	}
+
+}
