@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/turbot/pipe-fittings/utils"
+	"github.com/turbot/pipe-fittings/v2/utils"
 	"github.com/turbot/tailpipe-plugin-gcp/rows"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
 	"google.golang.org/genproto/googleapis/cloud/audit"
