@@ -22,8 +22,8 @@ List the 10 most frequently called events.
 
 ```sql
 select
-  service_name as event_source,
-  method_name as event_name,
+  service_name,
+  method_name,
   count(*) as event_count
 from
   gcp_audit_log
@@ -41,8 +41,8 @@ List the top 10 most frequently called events, excluding read-only events.
 
 ```sql
 select
-  service_name as event_source,
-  method_name as event_name,
+  service_name,
+  method_name,
   count(*) as event_count
 from
   gcp_audit_log
@@ -62,8 +62,8 @@ Count and group events by project ID, event source, and event name to analyze ac
 
 ```sql
 select
-  service_name as event_source,
-  method_name as event_name,
+  service_name,
+  method_name,
   log_name as project_id,
   count(*) as event_count
 from
