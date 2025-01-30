@@ -1,4 +1,4 @@
-package sources
+package storage_bucket
 
 import (
 	"fmt"

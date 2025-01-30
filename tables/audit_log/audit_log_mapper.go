@@ -1,4 +1,5 @@
-package mappers
+//nolint:staticcheck
+package audit_log
 
 import (
 	"context"
@@ -8,14 +9,14 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/turbot/pipe-fittings/v2/utils"
-	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
 	"google.golang.org/genproto/googleapis/cloud/audit"
 	adminpb "google.golang.org/genproto/googleapis/iam/admin/v1"
 	loggingpb "google.golang.org/genproto/googleapis/iam/v1/logging"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/turbot/pipe-fittings/v2/utils"
+	"github.com/turbot/tailpipe-plugin-sdk/table"
 )
 
 type AuditLogMapper struct {
@@ -25,7 +26,7 @@ func (m *AuditLogMapper) Identifier() string {
 	return "gcp_audit_log_mapper"
 }
 
-func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*rows.AuditLog]) (*rows.AuditLog, error) {
+func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*AuditLog]) (*AuditLog, error) {
 	switch v := a.(type) {
 	case string:
 		return mapFromBucketJson([]byte(v))
@@ -71,8 +72,8 @@ func decodeServiceData(tu string, v []byte) (*map[string]interface{}, error) {
 	return &result, nil
 }
 
-func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
-	row := rows.NewAuditLog()
+func mapFromSDKType(item logging.Entry) (*AuditLog, error) {
+	row := NewAuditLog()
 	row.Timestamp = item.Timestamp
 	row.LogName = item.LogName
 	row.InsertId = item.InsertID
@@ -89,14 +90,14 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 		row.NumResponseItems = &payload.NumResponseItems
 
 		if payload.Status != nil {
-			row.Status = &rows.AuditLogStatus{
+			row.Status = &AuditLogStatus{
 				Code:    payload.Status.Code,
 				Message: payload.Status.Message,
 			}
 		}
 
 		if payload.AuthenticationInfo != nil {
-			row.AuthenticationInfo = &rows.AuditLogAuthenticationInfo{
+			row.AuthenticationInfo = &AuditLogAuthenticationInfo{
 				PrincipalEmail:        payload.AuthenticationInfo.PrincipalEmail,
 				PrincipalSubject:      payload.AuthenticationInfo.PrincipalSubject,
 				AuthoritySelector:     payload.AuthenticationInfo.AuthoritySelector,
@@ -131,7 +132,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 				}
 			}
 
-			row.RequestMetadata = &rows.AuditLogRequestMetadata{
+			row.RequestMetadata = &AuditLogRequestMetadata{
 				CallerIp:                payload.RequestMetadata.CallerIp,
 				CallerSuppliedUserAgent: payload.RequestMetadata.CallerSuppliedUserAgent,
 				CallerNetwork:           payload.RequestMetadata.CallerNetwork,
@@ -139,7 +140,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 			}
 
 			if payload.RequestMetadata.DestinationAttributes != nil {
-				row.RequestMetadata.DestinationAttributes = &rows.AuditLogRequestMetadataDestinationAttributes{
+				row.RequestMetadata.DestinationAttributes = &AuditLogRequestMetadataDestinationAttributes{
 					Ip:         payload.RequestMetadata.DestinationAttributes.Ip,
 					Port:       payload.RequestMetadata.DestinationAttributes.Port,
 					Principal:  payload.RequestMetadata.DestinationAttributes.Principal,
@@ -150,7 +151,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 		}
 
 		if payload.ResourceLocation != nil {
-			row.ResourceLocation = &rows.AuditLogResourceLocation{
+			row.ResourceLocation = &AuditLogResourceLocation{
 				CurrentLocations:  payload.ResourceLocation.CurrentLocations,
 				OriginalLocations: payload.ResourceLocation.OriginalLocations,
 			}
@@ -162,7 +163,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 
 		if payload.AuthorizationInfo != nil {
 			for _, v := range payload.AuthorizationInfo {
-				row.AuthorizationInfo = append(row.AuthorizationInfo, &rows.AuditLogAuthorizationInfo{
+				row.AuthorizationInfo = append(row.AuthorizationInfo, &AuditLogAuthorizationInfo{
 					Resource:   v.Resource,
 					Permission: v.Permission,
 					Granted:    v.Granted,
@@ -197,7 +198,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 
 	// resource
 	if item.Resource != nil {
-		row.Resource = &rows.AuditLogResource{
+		row.Resource = &AuditLogResource{
 			Type:   item.Resource.Type,
 			Labels: item.Resource.Labels,
 		}
@@ -205,7 +206,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 
 	// operation
 	if item.Operation != nil {
-		row.Operation = &rows.AuditLogOperation{
+		row.Operation = &AuditLogOperation{
 			Id:       item.Operation.Id,
 			Producer: item.Operation.Producer,
 			First:    item.Operation.First,
@@ -215,7 +216,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 
 	// http request
 	if item.HTTPRequest != nil {
-		row.HttpRequest = &rows.AuditLogHttpRequest{
+		row.HttpRequest = &AuditLogHttpRequest{
 			Method:                         item.HTTPRequest.Request.Method,
 			Url:                            item.HTTPRequest.Request.URL.String(),
 			RequestHeaders:                 item.HTTPRequest.Request.Header,
@@ -239,7 +240,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 
 	// source location
 	if item.SourceLocation != nil {
-		row.SourceLocation = &rows.AuditLogSourceLocation{
+		row.SourceLocation = &AuditLogSourceLocation{
 			File:     item.SourceLocation.File,
 			Line:     item.SourceLocation.Line,
 			Function: item.SourceLocation.Function,
@@ -249,7 +250,7 @@ func mapFromSDKType(item logging.Entry) (*rows.AuditLog, error) {
 	return row, nil
 }
 
-func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
+func mapFromBucketJson(itemBytes []byte) (*AuditLog, error) {
 
 	// make a struct for the json data
 	var log auditLog
@@ -259,7 +260,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 	}
 
 	// create a new row
-	row := rows.NewAuditLog()
+	row := NewAuditLog()
 
 	// set the fields
 	row.InsertId = log.InsertID
@@ -299,14 +300,14 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 		}
 
 		if log.ProtoPayload.Status != nil {
-			row.Status = &rows.AuditLogStatus{
+			row.Status = &AuditLogStatus{
 				Code:    int32(log.ProtoPayload.Status.Code),
 				Message: log.ProtoPayload.Status.Message,
 			}
 		}
 
 		if log.ProtoPayload.AuthenticationInfo != nil {
-			row.AuthenticationInfo = &rows.AuditLogAuthenticationInfo{
+			row.AuthenticationInfo = &AuditLogAuthenticationInfo{
 				PrincipalEmail:        log.ProtoPayload.AuthenticationInfo.PrincipalEmail,
 				AuthoritySelector:     log.ProtoPayload.AuthenticationInfo.AuthoritySelector,
 				ServiceAccountKeyName: log.ProtoPayload.AuthenticationInfo.ServiceAccountKeyName,
@@ -328,7 +329,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 		}
 
 		if log.ProtoPayload.RequestMetadata != nil {
-			row.RequestMetadata = &rows.AuditLogRequestMetadata{
+			row.RequestMetadata = &AuditLogRequestMetadata{
 				CallerIp:                log.ProtoPayload.RequestMetadata.CallerIP,
 				CallerSuppliedUserAgent: log.ProtoPayload.RequestMetadata.CallerSuppliedUserAgent,
 				CallerNetwork:           log.ProtoPayload.RequestMetadata.CallerNetwork,
@@ -336,7 +337,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 			}
 
 			if log.ProtoPayload.RequestMetadata.DestinationAttributes != nil {
-				row.RequestMetadata.DestinationAttributes = &rows.AuditLogRequestMetadataDestinationAttributes{
+				row.RequestMetadata.DestinationAttributes = &AuditLogRequestMetadataDestinationAttributes{
 					Ip:         log.ProtoPayload.RequestMetadata.DestinationAttributes.Ip,
 					Port:       int64(log.ProtoPayload.RequestMetadata.DestinationAttributes.Port),
 					Principal:  log.ProtoPayload.RequestMetadata.DestinationAttributes.Principal,
@@ -347,7 +348,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 		}
 
 		if log.ProtoPayload.ResourceLocation != nil {
-			row.ResourceLocation = &rows.AuditLogResourceLocation{
+			row.ResourceLocation = &AuditLogResourceLocation{
 				CurrentLocations:  log.ProtoPayload.ResourceLocation.CurrentLocations,
 				OriginalLocations: log.ProtoPayload.ResourceLocation.OriginalLocations,
 			}
@@ -355,7 +356,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 
 		if log.ProtoPayload.AuthorizationInfo != nil {
 			for _, v := range log.ProtoPayload.AuthorizationInfo {
-				row.AuthorizationInfo = append(row.AuthorizationInfo, &rows.AuditLogAuthorizationInfo{
+				row.AuthorizationInfo = append(row.AuthorizationInfo, &AuditLogAuthorizationInfo{
 					Resource:   v.Resource,
 					Permission: v.Permission,
 					Granted:    v.Granted,
@@ -386,7 +387,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 
 	// resource
 	if log.Resource != nil {
-		row.Resource = &rows.AuditLogResource{
+		row.Resource = &AuditLogResource{
 			Type:   log.Resource.Type,
 			Labels: log.Resource.Labels,
 		}
@@ -394,7 +395,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 
 	// operation
 	if log.Operation != nil {
-		row.Operation = &rows.AuditLogOperation{
+		row.Operation = &AuditLogOperation{
 			Id:       log.Operation.ID,
 			Producer: log.Operation.Producer,
 			First:    log.Operation.First,
@@ -404,7 +405,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 
 	// http request
 	if log.HTTPRequest != nil {
-		row.HttpRequest = &rows.AuditLogHttpRequest{
+		row.HttpRequest = &AuditLogHttpRequest{
 			Method:                         log.HTTPRequest.RequestMethod,
 			Url:                            log.HTTPRequest.RequestURL,
 			Status:                         log.HTTPRequest.Status,
@@ -425,7 +426,7 @@ func mapFromBucketJson(itemBytes []byte) (*rows.AuditLog, error) {
 
 	// source location
 	if log.SourceLocation != nil {
-		row.SourceLocation = &rows.AuditLogSourceLocation{
+		row.SourceLocation = &AuditLogSourceLocation{
 			File:     log.SourceLocation.File,
 			Line:     int64(log.SourceLocation.Line),
 			Function: log.SourceLocation.Function,

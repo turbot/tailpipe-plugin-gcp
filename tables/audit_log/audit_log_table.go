@@ -1,4 +1,4 @@
-package tables
+package audit_log
 
 import (
 	"time"
@@ -6,9 +6,8 @@ import (
 	"github.com/rs/xid"
 
 	"github.com/turbot/pipe-fittings/v2/utils"
-	"github.com/turbot/tailpipe-plugin-gcp/mappers"
-	"github.com/turbot/tailpipe-plugin-gcp/rows"
-	"github.com/turbot/tailpipe-plugin-gcp/sources"
+	"github.com/turbot/tailpipe-plugin-gcp/sources/audit_log_api"
+	"github.com/turbot/tailpipe-plugin-gcp/sources/storage_bucket"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
 	"github.com/turbot/tailpipe-plugin-sdk/constants"
@@ -20,7 +19,7 @@ import (
 const AuditLogTableIdentifier string = "gcp_audit_log"
 
 func init() {
-	table.RegisterTable[*rows.AuditLog, *AuditLogTable]()
+	table.RegisterTable[*AuditLog, *AuditLogTable]()
 }
 
 type AuditLogTable struct {
@@ -30,19 +29,19 @@ func (c *AuditLogTable) Identifier() string {
 	return AuditLogTableIdentifier
 }
 
-func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*rows.AuditLog] {
+func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*AuditLog] {
 	defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigImpl{
 		FileLayout: utils.ToStringPointer("cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json"),
 	}
 
-	return []*table.SourceMetadata[*rows.AuditLog]{
+	return []*table.SourceMetadata[*AuditLog]{
 		{
-			SourceName: sources.AuditLogAPISourceIdentifier,
-			Mapper:     &mappers.AuditLogMapper{},
+			SourceName: audit_log_api.AuditLogAPISourceIdentifier,
+			Mapper:     &AuditLogMapper{},
 		},
 		{
-			SourceName: sources.GcpStorageBucketSourceIdentifier,
-			Mapper:     &mappers.AuditLogMapper{},
+			SourceName: storage_bucket.GcpStorageBucketSourceIdentifier,
+			Mapper:     &AuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig),
 				artifact_source.WithRowPerLine(),
@@ -50,7 +49,7 @@ func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*rows.AuditL
 		},
 		{
 			SourceName: constants.ArtifactSourceIdentifier,
-			Mapper:     &mappers.AuditLogMapper{},
+			Mapper:     &AuditLogMapper{},
 			Options: []row_source.RowSourceOption{
 				artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig),
 			},
@@ -58,7 +57,7 @@ func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*rows.AuditL
 	}
 }
 
-func (c *AuditLogTable) EnrichRow(row *rows.AuditLog, sourceEnrichmentFields schema.SourceEnrichment) (*rows.AuditLog, error) {
+func (c *AuditLogTable) EnrichRow(row *AuditLog, sourceEnrichmentFields schema.SourceEnrichment) (*AuditLog, error) {
 	row.CommonFields = sourceEnrichmentFields.CommonFields
 
 	row.TpID = xid.New().String()

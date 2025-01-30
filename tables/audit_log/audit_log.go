@@ -1,10 +1,11 @@
-package rows
+package audit_log
 
 import (
 	"time"
 
-	"github.com/turbot/tailpipe-plugin-sdk/schema"
 	"google.golang.org/genproto/googleapis/cloud/audit"
+
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
 )
 
 // AuditLog represents an enriched row ready for parquet writing
