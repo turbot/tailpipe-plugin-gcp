@@ -113,26 +113,23 @@ Dashboards and detections are [open source](https://github.com/topics/tailpipe-m
 
 To get started, choose a mod from the [Powerpipe Hub](https://hub.powerpipe.io/?engines=tailpipe&q=gcp).
 
-<img src="https://raw.githubusercontent.com/turbot/tailpipe-plugin-gcp/main/docs/images/gcp_audit_log_mitre_dashboard.png"/>
-
 ## Connection Credentials
 
 ### Arguments
 
-| Item        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Credentials | When running locally, you must configure your [Application Default Credentials](https://cloud.google.com/sdk/gcloud/reference/auth/application-default). If you are running in Cloud Shell or Cloud Code, [the tool uses the credentials you provided when you logged in, and manages any authorizations required](https://cloud.google.com/docs/authentication/provide-credentials-adc#cloud-based-dev). |
-| Permissions | Assign the `Viewer` role to your user or service account. You may also need additional permissions related to IAM policies, like `pubsub.subscriptions.getIamPolicy`, `pubsub.topics.getIamPolicy`, `storage.buckets.getIamPolicy`, since these are not included in the `Viewer` role. You can grant these by creating a custom role in your project. |
-| Radius      | Each connection represents a single GCP project, except for some tables like `gcp_organization` and `gcp_organization_project` which return all resources the credentials attached to the connection have access to. |
-| Resolution  | 1. Credentials from the JSON file specified by the `credentials` parameter in your steampipe config.<br />2. Credentials from the JSON file specified by the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.<br />3. Credentials from the default JSON file location (~/.config/gcloud/application_default_credentials.json). <br />4. Credentials from [the metadata server](https://cloud.google.com/docs/authentication/application-default-credentials#attached-sa) |
+| Name                          | Type   | Required | Description                                                                                          |
+|-------------------------------|--------|----------|------------------------------------------------------------------------------------------------------|
+| `credentials`                 | String | No       | Path to the JSON credentials file or the contents of a service account key file in JSON format.     |
+| `impersonate_access_token`    | String | No       | An OAuth 2.0 access token used to impersonate a service account.                                    |
+| `impersonate_service_account` | String | No       | The email of the service account to impersonate for authentication.                                |
+| `project`                     | String | No       | The project ID to connect to.                                                                      |
+| `quota_project`               | String | No       | The project ID to use for quota usage and billing purposes.                                        |
 
-## Advanced configuration options
+### Application Default Credentials
 
-By default, the GCP plugin uses your [Application Default Credentials](https://cloud.google.com/sdk/gcloud/reference/auth/application-default) to connect to GCP. If you have not set up ADC, simply run `gcloud auth application-default login`. This command will prompt you to log in, and then will download the application default credentials to ~/.config/gcloud/application_default_credentials.json.
+By default, the GCP plugin uses your [Application Default Credentials](https://cloud.google.com/sdk/gcloud/reference/auth/application-default) to connect to GCP. If you have not set up ADC, simply run `gcloud auth application-default login`. This command will prompt you to log in, and then will download the application default credentials to `~/.config/gcloud/application_default_credentials.json`.
 
-For users with multiple GCP projects and more complex authentication use cases, here are some examples of advanced configuration options:
-
-### Use a service account
+### Service Account Credentials
 
 Generate and download a JSON key for an existing service account using: [create service account key page](https://console.cloud.google.com/apis/credentials/serviceaccountkey).
 
@@ -143,7 +140,7 @@ connection "gcp_my_other_project" {
 }
 ```
 
-### Use impersonation access token
+### Impersonation Access Token Credentials
 
 Generate an impersonate access token using: [gcloud CLI command](https://cloud.google.com/iam/docs/create-short-lived-credentials-direct#gcloud_2).
 
@@ -154,7 +151,9 @@ connection "gcp_my_other_project" {
 }
 ```
 
-### Specify static credentials using environment variables
+### Credentials from Environment Variables
+
+The GCP plugin will use the standard GCP environment variables to obtain credentials **only if other arguments (`credentials`, `impersonate_access_token`, etc..) are not specified** in the connection:
 
 ```sh
 export CLOUDSDK_CORE_PROJECT=myproject

@@ -1,11 +1,11 @@
 ---
-title: "Tailpipe Table: gcp_audit_log - Query GCP Audit Logs"
-description: "GCP Audit Logs capture API activity, administrative actions, and security-related events within your Google Cloud environment."
+title: "Tailpipe Table: gcp_audit_log - Query GCP audit logs"
+description: "GCP audit logs capture API activity, administrative actions, and security-related events within your Google Cloud environment."
 ---
 
-# Table: gcp_audit_log - Query GCP Audit Logs
+# Table: gcp_audit_log - Query GCP audit logs
 
-The `gcp_audit_log` table allows you to query data from GCP Audit Logs. This table provides detailed information about API calls made within your Google Cloud environment, including the event name, resource affected, user identity, and more.
+The `gcp_audit_log` table allows you to query data from GCP audit logs. This table provides detailed information about API calls made within your Google Cloud environment, including the event name, resource affected, user identity, and more.
 
 ## Configure
 
@@ -21,7 +21,7 @@ connection "gcp" "logging_account" {
 }
 
 partition "gcp_audit_log" "my_logs" {
-  source "gcp_logging" {
+  source "gcp_storage_bucket" {
     connection = connection.gcp.logging_account
   }
 }
@@ -43,9 +43,9 @@ tailpipe collect gcp_audit_log.my_logs
 
 ## Query
 
-**[Explore 100+ example queries for this table →](https://hub.tailpipe.io/plugins/turbot/gcp/queries/gcp_audit_log)**
+**[Explore 50+ example queries for this table →](https://hub.tailpipe.io/plugins/turbot/gcp/queries/gcp_audit_log)**
 
-### User Activity
+### User activity
 
 Find any actions taken by a user.
 
@@ -59,19 +59,19 @@ select
 from
   gcp_audit_log
 where
-  authentication_info ->> 'principal_email' = 'jane_doe@domain.com'
+  (authentication_info ->> 'principal_email') = 'jane_doe@domain.com'
 order by
   timestamp desc;
 ```
 
-### Top 10 Events
+### Top 10 events
 
 List the 10 most frequently called events.
 
 ```sql
 select
-  service_name as event_source,
-  method_name as event_name,
+  service_name,
+  method_name,
   count(*) as event_count
 from
   gcp_audit_log
@@ -83,9 +83,9 @@ order by
 limit 10;
 ```
 
-### High Volume IAM Policy Changes
+### High Volume IAM Access Token Generation
 
-Find users generating a high volume of IAM policy changes to detect potential privilege escalations.
+Find users generating a high volume of IAM access tokens within a short period, which may indicate potential privilege escalation or compromised credentials.
 
 ```sql
 select
@@ -95,78 +95,116 @@ select
 from
   gcp_audit_log
 where
-  service_name = 'iam.googleapis.com'
-  and method_name like '%setiampolicy%'
+  service_name = 'iamcredentials.googleapis.com'
+  and method_name ilike 'generateaccesstoken'
 group by
   user_email,
   event_minute
 having
-  count(*) > 50
+  count(*) > 10
 order by
   event_count desc;
 ```
 
 ## Example Configurations
 
-### Collect logs from GCP Logging
+### Collect logs from a Storage bucket
 
-Collect GCP Audit Logs using GCP Logging:
+Collect audit logs stored in a Storage bucket that use the [default log file name format](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_audit_log#gcp_storage_bucket).
 
 ```hcl
+connection "gcp" "logging_account" {
+  project = "my-gcp-project"
+}
+
 partition "gcp_audit_log" "my_logs" {
-  source "gcp_logging" {
+  source "gcp_storage_bucket" {
     connection = connection.gcp.logging_account
+    bucket     = "gcp-audit-logs-bucket"
   }
 }
 ```
 
-### Exclude Read-Only Events
+### Collect logs from a Storage bucket with a prefix
 
-Use the filter argument in your partition to exclude read-only events and reduce log storage size.
+Collect audit logs stored with a GCS key prefix.
 
 ```hcl
-partition "gcp_audit_log" "my_logs_write" {
-  # Avoid saving read-only events
+partition "gcp_audit_log" "my_logs_prefix" {
+  source "gcp_storage_bucket" {
+    connection = connection.gcp.logging_account
+    bucket     = "gcp-audit-logs-bucket"
+    prefix     = "my/prefix/"
+  }
+}
+```
+
+### Collect logs from a Storage Bucket for a single project
+
+Collect audit logs for a specific project.
+
+```hcl
+partition "gcp_audit_log" "my_logs_prefix" {
+  filter = "log_name like 'projects/my-project-name/logs/cloudaudit.googleapis.com/%'"
+
+  source "gcp_storage_bucket" {
+    connection = connection.gcp.logging_account
+    bucket     = "gcp-audit-logs-bucket"
+  }
+}
+```
+
+### Collect logs from audit logs API
+
+Collect audit logs stored in a Storage bucket that use the [default log file name format](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_audit_log#gcp_storage_bucket).
+
+```hcl
+connection "gcp" "my_project" {
+  project = "my-gcp-project"
+}
+
+partition "gcp_audit_log" "my_logs" {
+  source "gcp_audit_log_api" {
+    connection = connection.gcp.my_project
+  }
+}
+```
+
+### Collect specific types of audit logs from audit logs API
+
+Collect admin activity and data access audit logs for a project.
+
+```hcl
+partition "gcp_audit_log" "my_logs_admin_data_access" {
+  source "gcp_audit_log_api" {
+    connection = connection.gcp.my_project
+    log_types = ["activity", "data_access"]
+  }
+}
+```
+
+### Exclude INFO level events
+
+Use the filter argument in your partition to exclude INFO severity level events and reduce log storage size.
+
+```hcl
+partition "gcp_audit_log" "my_logs_severity" {
+  # Avoid saving specific severity levels
   filter = "severity != 'INFO'"
 
-  source "gcp_logging" {
+  source "gcp-storage_bucket" {
     connection = connection.gcp.logging_account
-  }
-}
-```
-
-### Collect logs for all projects in an organization
-
-For a specific organization, collect logs for all projects.
-
-```hcl
-partition "gcp_audit_log" "my_logs_org" {
-  source "gcp_logging"  {
-    connection  = connection.gcp.logging_account
-  }
-}
-```
-
-### Collect logs for a single project
-
-For a specific project, collect logs for all resources.
-
-```hcl
-partition "gcp_audit_log" "my_logs_project" {
-  source "gcp_logging"  {
-    connection  = connection.gcp.logging_account
-    project = "my-gcp-project"
+    bucket     = "gcp-audit-logs-bucket"
   }
 }
 ```
 
 ## Source Defaults
 
-### gcp_logging
+### gcp_storage_bucket
 
-This table sets the following defaults for the [gcp_logging source](https://tailpipe.io/plugins/turbot/gcp/sources/gcp_logging#arguments):
+This table sets the following defaults for the [gcp_storage_bucket](https://hub.tailpipe.io/plugins/turbot/gcp/sources/gcp_storage_bucket#arguments):
 
 | Argument      | Default |
 |--------------|---------|
-| log_type     | `cloudaudit.googleapis.com/activity` |
-
+| file_layout   | `cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json` |

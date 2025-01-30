@@ -121,19 +121,19 @@ cd tailpipe-plugin-gcp
 
 After making your local changes, build the plugin, which automatically installs the new version to your `~/.tailpipe/plugins` directory:
 
-```
+```sh
 make
 ```
 
 Re-collect your data:
 
-```
+```sh
 tailpipe collect gcp_audit_log
 ```
 
 Try it!
 
-```
+```sh
 tailpipe query
 > .inspect gcp_audit_log
 ```
