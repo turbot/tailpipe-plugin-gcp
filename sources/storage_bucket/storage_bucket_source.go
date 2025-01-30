@@ -1,4 +1,4 @@
-package sources
+package storage_bucket
 
 import (
 	"context"
@@ -13,13 +13,14 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/elastic/go-grok"
+	"google.golang.org/api/iterator"
+
 	typehelpers "github.com/turbot/go-kit/types"
 	"github.com/turbot/pipe-fittings/v2/filter"
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/types"
-	"google.golang.org/api/iterator"
 )
 
 const GcpStorageBucketSourceIdentifier = "gcp_storage_bucket"
