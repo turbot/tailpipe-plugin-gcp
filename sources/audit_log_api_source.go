@@ -119,11 +119,12 @@ func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string
 	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
 	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
 	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
+	policyDenied := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%spolicy"`, projectId, "%2F")
 	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
 
 	// short-circuit default
 	if len(logTypes) == 0 {
-		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
+		return fmt.Sprintf("logName=(%s OR %s OR %s OR %s) %s", activity, dataAccess, systemEvent, policyDenied, timePart)
 	}
 
 	var selected []string
@@ -135,12 +136,14 @@ func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string
 			selected = append(selected, dataAccess)
 		case "system_event":
 			selected = append(selected, systemEvent)
+		case "policy":
+			selected = append(selected, policyDenied)
 		}
 	}
 
 	switch len(selected) {
 	case 0:
-		return fmt.Sprintf("logName=(%s OR %s OR %s) %s", activity, dataAccess, systemEvent, timePart)
+		return fmt.Sprintf("logName=(%s OR %s OR %s or %s) %s", activity, dataAccess, systemEvent, policyDenied, timePart)
 	case 1:
 		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
 	default:
