@@ -18,10 +18,6 @@ import (
 
 const AuditLogTableIdentifier string = "gcp_audit_log"
 
-func init() {
-	table.RegisterTable[*AuditLog, *AuditLogTable]()
-}
-
 type AuditLogTable struct {
 }
 

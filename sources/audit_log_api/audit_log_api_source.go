@@ -20,10 +20,6 @@ import (
 
 const AuditLogAPISourceIdentifier = "gcp_audit_log_api"
 
-func init() {
-	row_source.RegisterRowSource[*AuditLogAPISource]()
-}
-
 // AuditLogAPISource source is responsible for collecting audit logs from GCP
 type AuditLogAPISource struct {
 	row_source.RowSourceImpl[*AuditLogAPISourceConfig, *config.GcpConnection]
