@@ -105,7 +105,7 @@ select
   timestamp,
   service_name,
   method_name,
-  authentication_info->>'principal_email' as user_email,
+  authentication_info ->> 'principal_email' as user_email,
   resource_name
 from
   gcp_audit_log
@@ -125,13 +125,13 @@ select
   timestamp,
   service_name,
   method_name,
-  authentication_info->>'principal_email' as user_email,
+  authentication_info ->> 'principal_email' as user_email,
   resource_name
 from
   gcp_audit_log
 where
   service_name = 'logging.googleapis.com'
-  and method_name = 'DeleteSink'
+  and method_name ilike '%DeleteSink'
 order by
   timestamp desc;
 ```
@@ -149,7 +149,7 @@ select
 from
   gcp_audit_log
 where
-  method_name = 'google.iam.admin.v%.SignIn'
+  method_name ilike 'google.iam.admin.v%.IAM.SignJwt'
   and status.code != '0'
 order by
   timestamp desc;
@@ -185,7 +185,7 @@ select
   timestamp,
   service_name,
   method_name,
-  authentication_info->>'principal_email' as user_email,
+  authentication_info ->> 'principal_email' as user_email,
   resource_name
 from
   gcp_audit_log
@@ -202,7 +202,7 @@ Detect unusually high access activity to Cloud Storage buckets and objects.
 
 ```sql
 select
-  authentication_info->>'principal_email' as user_email,
+  authentication_info ->> 'principal_email' as user_email,
   count(*) as event_count,
   date_trunc('minute', timestamp) as event_minute
 from
@@ -225,7 +225,7 @@ Identify IAM roles being assigned at an unusually high frequency.
 
 ```sql
 select
-  authentication_info->>'principal_email' as user_email,
+  authentication_info ->> 'principal_email' as user_email,
   count(*) as event_count,
   date_trunc('hour', timestamp) as event_hour
 from
