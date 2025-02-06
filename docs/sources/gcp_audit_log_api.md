@@ -42,7 +42,8 @@ partition "gcp_audit_log" "my_logs_admin_data_access" {
 
 ## Arguments
 
-| Argument   | Required | Default                  | Description                                                                                                                   |
-|------------|----------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| connection | No       | `connection.gcp.default` | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account. |
-| log_types  | No       | []                       | A list of [audit log types](https://cloud.google.com/logging/docs/audit#types) to retrieve. If no types are specified, all log types are retrieved. Valid values: `activity`, `data_access`, `system_event`.                                                                       |
+| Argument   | Type        | Required | Default                  | Description                                                                                                                   |
+|------------|------------|----------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| connection | Connection | No       | connection.gcp.default   | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account. |
+| log_types  | List<String> | No       | []                       | A list of [audit log types](https://cloud.google.com/logging/docs/audit#types) to retrieve. If no types are specified, all log types are retrieved. Valid values: activity, data_access, system_event. |
+
