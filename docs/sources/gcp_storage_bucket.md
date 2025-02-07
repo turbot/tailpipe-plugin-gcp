@@ -61,12 +61,12 @@ partition "gcp_audit_log" "my_logs_prefix" {
 
 ## Arguments
 
-| Argument    | Type        | Required | Default                  | Description                                                                                                                   |
-|-------------|-------------|----------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| bucket      | String      | Yes      |                          | The name of the GCP Storage bucket to collect logs from.                                                                      |
-| connection  | Connection  | No       | connection.gcp.default   | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account. |
-| file_layout | String      | No       |                          | The Grok pattern that defines the log file structure.                                                                         |
-| prefix      | String      | No       |                          | The GCS key prefix that comes after the name of the bucket you have designated for log file delivery.                         |
+| Argument    | Type             | Required | Default                  | Description                                                                                                                   |
+|-------------|------------------|----------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| bucket      | String           | Yes      |                          | The name of the GCP Storage bucket to collect logs from.                                                                      |
+| connection  | `connection.gcp` | No       | `connection.gcp.default` | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account. |
+| file_layout | String           | No       |                          | The Grok pattern that defines the log file structure.                                                                         |
+| prefix      | String           | No       |                          | The GCS key prefix that comes after the name of the bucket you have designated for log file delivery.                         |
 
 ### Table Defaults
 
