@@ -20,29 +20,6 @@ order by
 folder: Project
 ```
 
-### Top 10 Events
-
-List the 10 most frequently called events.
-
-```sql
-select
-  service_name,
-  method_name,
-  count(*) as event_count
-from
-  gcp_audit_log
-group by
-  service_name,
-  method_name
-order by
-  event_count desc
-limit 10;
-```
-
-```yaml
-folder: Project
-```
-
 ### Top 10 Events (Exclude Read-Only)
 
 List the top 10 most frequently called events, excluding read-only events.
