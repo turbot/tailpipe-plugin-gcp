@@ -43,7 +43,7 @@ limit 10;
 folder: Account
 ```
 
-### Top 10 Events (exclude read-only)
+### Top 10 Events (Exclude Read-Only)
 
 List the top 10 most frequently called events, excluding read-only events.
 
