@@ -17,7 +17,7 @@ order by
 ```
 
 ```yaml
-folder: Account
+folder: Project
 ```
 
 ### Top 10 Events
@@ -40,7 +40,7 @@ limit 10;
 ```
 
 ```yaml
-folder: Account
+folder: Project
 ```
 
 ### Top 10 Events (Exclude Read-Only)
@@ -65,7 +65,7 @@ limit 10;
 ```
 
 ```yaml
-folder: Account
+folder: Project
 ```
 
 ### Top Events by Project
@@ -89,7 +89,7 @@ order by
 ```
 
 ```yaml
-folder: Account
+folder: Project
 ```
 
 ### Top Error Codes
@@ -111,7 +111,7 @@ order by
 ```
 
 ```yaml
-folder: Account
+folder: Project
 ```
 
 ## Detection Examples
@@ -207,7 +207,7 @@ order by
 ```
 
 ```yaml
-folder: Account
+folder: Project
 ```
 
 ## Operational Examples
