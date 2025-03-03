@@ -1,6 +1,6 @@
 ## Activity Examples
 
-### Daily activity trends
+### Daily Activity Trends
 
 Count events per day to identify activity trends over time.
 
@@ -16,26 +16,11 @@ order by
   event_date asc;
 ```
 
-### Top 10 events
-
-List the 10 most frequently called events.
-
-```sql
-select
-  service_name,
-  method_name,
-  count(*) as event_count
-from
-  gcp_audit_log
-group by
-  service_name,
-  method_name
-order by
-  event_count desc
-limit 10;
+```yaml
+folder: Project
 ```
 
-### Top 10 events (exclude read-only)
+### Top 10 Events (Exclude Read-Only)
 
 List the top 10 most frequently called events, excluding read-only events.
 
@@ -56,7 +41,11 @@ order by
 limit 10;
 ```
 
-### Top events by project
+```yaml
+folder: Project
+```
+
+### Top Events by Project
 
 Count and group events by project ID, event source, and event name to analyze activity across projects.
 
@@ -76,7 +65,11 @@ order by
   event_count desc;
 ```
 
-### Top error codes
+```yaml
+folder: Project
+```
+
+### Top Error Codes
 
 Identify the most frequent error codes.
 
@@ -94,9 +87,13 @@ order by
   event_count desc;
 ```
 
+```yaml
+folder: Project
+```
+
 ## Detection Examples
 
-### IAM policy changes
+### IAM Policy Changes
 
 Detect IAM policy modifications.
 
@@ -116,7 +113,11 @@ order by
   timestamp desc;
 ```
 
-### Logging disabled
+```yaml
+folder: IAM
+```
+
+### Logging Disabled
 
 Detect when logging was disabled for a project.
 
@@ -136,7 +137,11 @@ order by
   timestamp desc;
 ```
 
-### Unsuccessful login attempts
+```yaml
+folder: Logging
+```
+
+### Unsuccessful Login Attempts
 
 Find failed login attempts to detect potential unauthorized access.
 
@@ -155,7 +160,11 @@ order by
   timestamp desc;
 ```
 
-### Activity in unapproved regions
+```yaml
+folder: IAM
+```
+
+### Activity in Unapproved Regions
 
 Identify actions occurring in GCP regions outside an approved list.
 
@@ -174,9 +183,13 @@ order by
   timestamp desc;
 ```
 
+```yaml
+folder: Project
+```
+
 ## Operational Examples
 
-### Firewall rule modifications
+### Firewall Rule Modifications
 
 Track changes to firewall rules.
 
@@ -196,7 +209,11 @@ order by
   timestamp desc;
 ```
 
-### High volume of storage access requests
+```yaml
+folder: Compute
+```
+
+### High Volume of Storage Access Requests
 
 Detect unusually high access activity to Cloud Storage buckets and objects.
 
@@ -219,7 +236,11 @@ order by
   event_count desc;
 ```
 
-### Excessive role assignments
+```yaml
+folder: Storage
+```
+
+### Excessive Role Assignments
 
 Identify IAM roles being assigned at an unusually high frequency.
 
@@ -243,3 +264,6 @@ order by
   event_count desc;
 ```
 
+```yaml
+folder: IAM
+```
