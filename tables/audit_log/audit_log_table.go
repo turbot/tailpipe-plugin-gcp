@@ -25,7 +25,7 @@ func (c *AuditLogTable) Identifier() string {
 	return AuditLogTableIdentifier
 }
 
-func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*AuditLog] {
+func (c *AuditLogTable) GetSourceMetadata() ([]*table.SourceMetadata[*AuditLog], error) {
 	defaultArtifactConfig := &artifact_source_config.ArtifactSourceConfigImpl{
 		FileLayout: utils.ToStringPointer("cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json"),
 	}
@@ -50,7 +50,7 @@ func (c *AuditLogTable) GetSourceMetadata() []*table.SourceMetadata[*AuditLog] {
 				artifact_source.WithDefaultArtifactSourceConfig(defaultArtifactConfig),
 			},
 		},
-	}
+	}, nil
 }
 
 func (c *AuditLogTable) EnrichRow(row *AuditLog, sourceEnrichmentFields schema.SourceEnrichment) (*AuditLog, error) {
