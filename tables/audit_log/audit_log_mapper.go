@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/turbot/pipe-fittings/v2/utils"
-	"github.com/turbot/tailpipe-plugin-sdk/table"
+	"github.com/turbot/tailpipe-plugin-sdk/mappers"
 )
 
 type AuditLogMapper struct {
@@ -26,7 +26,7 @@ func (m *AuditLogMapper) Identifier() string {
 	return "gcp_audit_log_mapper"
 }
 
-func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...table.MapOption[*AuditLog]) (*AuditLog, error) {
+func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...mappers.MapOption[*AuditLog]) (*AuditLog, error) {
 	switch v := a.(type) {
 	case string:
 		return mapFromBucketJson([]byte(v))
