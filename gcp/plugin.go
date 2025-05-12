@@ -6,6 +6,7 @@ import (
 	"github.com/turbot/tailpipe-plugin-gcp/sources/audit_log_api"
 	"github.com/turbot/tailpipe-plugin-gcp/sources/storage_bucket"
 	"github.com/turbot/tailpipe-plugin-gcp/tables/audit_log"
+	"github.com/turbot/tailpipe-plugin-gcp/tables/billing_report"
 	"github.com/turbot/tailpipe-plugin-sdk/plugin"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
 	"github.com/turbot/tailpipe-plugin-sdk/table"
@@ -20,6 +21,7 @@ func init() {
 	// 1. row struct
 	// 2. table implementation
 	table.RegisterTable[*audit_log.AuditLog, *audit_log.AuditLogTable]()
+	table.RegisterTable[*billing_report.BillingReport, *billing_report.BillingReportTable]()
 
 	// register sources
 	row_source.RegisterRowSource[*audit_log_api.AuditLogAPISource]()
