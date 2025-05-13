@@ -4,6 +4,8 @@ go 1.24
 
 toolchain go1.24.1
 
+replace github.com/turbot/tailpipe-plugin-sdk => ../tailpipe-plugin-sdk
+
 require (
 	cloud.google.com/go/logging v1.11.0
 	cloud.google.com/go/storage v1.42.0
@@ -11,8 +13,8 @@ require (
 	github.com/hashicorp/hcl/v2 v2.20.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rs/xid v1.6.0
-	github.com/turbot/go-kit v1.2.0
-	github.com/turbot/pipe-fittings/v2 v2.3.3
+	github.com/turbot/go-kit v1.3.0
+	github.com/turbot/pipe-fittings/v2 v2.4.0-rc.5
 	github.com/turbot/tailpipe-plugin-sdk v0.4.0
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/api v0.189.0
@@ -150,6 +152,7 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/satyrius/gonx v1.4.0 // indirect
+	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
