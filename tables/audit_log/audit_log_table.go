@@ -59,7 +59,7 @@ func (c *AuditLogTable) EnrichRow(row *AuditLog, sourceEnrichmentFields schema.S
 	row.TpID = xid.New().String()
 	row.TpTimestamp = row.Timestamp
 	row.TpIngestTimestamp = time.Now()
-	row.TpIndex = *row.CommonFields.TpSourceLocation // project
+	row.TpIndex = schema.DefaultIndex
 	row.TpDate = row.Timestamp.Truncate(24 * time.Hour)
 
 	if row.AuthenticationInfo != nil {
