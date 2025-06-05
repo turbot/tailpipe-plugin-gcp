@@ -134,7 +134,7 @@ By default, the GCP plugin uses your [Application Default Credentials](https://c
 Generate and download a JSON key for an existing service account using: [create service account key page](https://console.cloud.google.com/apis/credentials/serviceaccountkey).
 
 ```hcl
-connection "gcp_my_other_project" {
+connection "gcp" "gcp_my_other_project" {
   project     = "my-other-project"
   credentials = "/home/me/my-service-account-creds.json"
 }
@@ -145,7 +145,7 @@ connection "gcp_my_other_project" {
 Generate an impersonate access token using: [gcloud CLI command](https://cloud.google.com/iam/docs/create-short-lived-credentials-direct#gcloud_2).
 
 ```hcl
-connection "gcp_my_other_project" {
+connection "gcp" "gcp_my_other_project" {
   project                  = "my-other-project"
   impersonate_access_token = "ya29.c.c0ASRK0GZ7mv8lIV0iiudmiGBs9m1gqGfBYZzV...aMYJd"
 }
