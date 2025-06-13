@@ -39,7 +39,8 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 			{
 				ColumnName: "tp_timestamp",
 				Type:       "timestamp",
-				Transform:  "strptime(usage_start_time, '%Y-%m-%dT%H:%M:%S.%f %Z')",
+				SourceName: "usage_start_time",
+				//Transform:  "strptime(usage_start_time, '%Y-%m-%dT%H:%M:%S.%f %Z')",
 			},
 			{
 				ColumnName: "billing_account_id",
@@ -59,7 +60,7 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 			},
 			{
 				ColumnName: "credits",
-				Type:       "struct[]",
+				Type:       "json",
 				StructFields: []*schema.ColumnSchema{
 					{
 						ColumnName: "amount",
@@ -94,7 +95,7 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 			},
 			{
 				ColumnName: "invoice_month",
-				Type:       "int",
+				Type:       "integer",
 				Transform:  "(invoice ->> month)::integer",
 			},
 			{
