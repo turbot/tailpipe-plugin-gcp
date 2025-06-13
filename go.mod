@@ -14,7 +14,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rs/xid v1.6.0
 	github.com/turbot/go-kit v1.3.0
-	github.com/turbot/pipe-fittings/v2 v2.4.0-rc.5
+	github.com/turbot/pipe-fittings/v2 v2.4.1
 	github.com/turbot/tailpipe-plugin-sdk v0.4.0
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/api v0.189.0
