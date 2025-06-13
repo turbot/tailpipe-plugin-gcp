@@ -40,7 +40,6 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 				ColumnName: "tp_timestamp",
 				Type:       "timestamp",
 				SourceName: "usage_start_time",
-				//Transform:  "strptime(usage_start_time, '%Y-%m-%dT%H:%M:%S.%f %Z')",
 			},
 			{
 				ColumnName: "billing_account_id",
@@ -91,12 +90,12 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 			{
 				ColumnName: "export_time",
 				Type:       "timestamp",
-				Transform:  "strptime(export_time, '%Y-%m-%dT%H:%M:%S.%f %Z')",
+				Transform:  "strptime(export_time, '%Y-%m-%d %H:%M:%S %Z')",
 			},
 			{
 				ColumnName: "invoice_month",
 				Type:       "integer",
-				Transform:  "(invoice ->> month)::integer",
+				Transform:  "(invoice ->> 'month')::integer",
 			},
 			{
 				ColumnName: "labels",
@@ -127,52 +126,52 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 			{
 				ColumnName: "project_ancestors",
 				Type:       "json",
-				Transform:  "(project ->> ancestors)::json",
+				Transform:  "(project ->> 'ancestors')::json",
 			},
 			{
 				ColumnName: "project_ancestry_numbers",
 				Type:       "varchar",
-				Transform:  "(project ->> ancestry_numbers)",
+				Transform:  "(project ->> 'ancestry_numbers')",
 			},
 			{
 				ColumnName: "project_id",
 				Type:       "varchar",
-				Transform:  "(project ->> id)",
+				Transform:  "(project ->> 'id')",
 			},
 			{
 				ColumnName: "project_labels",
 				Type:       "json",
-				Transform:  "(project ->> labels)::json",
+				Transform:  "(project ->> 'labels')::json",
 			},
 			{
 				ColumnName: "project_name",
 				Type:       "varchar",
-				Transform:  "(project ->> name)",
+				Transform:  "(project ->> 'name')",
 			},
 			{
 				ColumnName: "project_number",
 				Type:       "varchar",
-				Transform:  "(project ->> number)",
+				Transform:  "(project ->> 'number')",
 			},
 			{
 				ColumnName: "service_description",
 				Type:       "varchar",
-				Transform:  "(service ->> description)",
+				Transform:  "(service ->> 'description')",
 			},
 			{
 				ColumnName: "service_id",
 				Type:       "varchar",
-				Transform:  "(service ->> id)",
+				Transform:  "(service ->> 'id')",
 			},
 			{
 				ColumnName: "sku_description",
 				Type:       "varchar",
-				Transform:  "(sku ->> description)",
+				Transform:  "(sku ->> 'description')",
 			},
 			{
 				ColumnName: "sku_id",
 				Type:       "varchar",
-				Transform:  "(sku ->> id)",
+				Transform:  "(sku ->> 'id')",
 			},
 			{
 				ColumnName: "system_labels",
@@ -185,12 +184,12 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 			{
 				ColumnName: "usage_end_time",
 				Type:       "timestamp",
-				Transform:  "strptime(usage_end_time, '%Y-%m-%dT%H:%M:%S.%f %Z')",
+				Transform:  "strptime(usage_end_time, '%Y-%m-%d %H:%M:%S %Z')",
 			},
 			{
 				ColumnName: "usage_start_time",
 				Type:       "timestamp",
-				Transform:  "strptime(usage_start_time, '%Y-%m-%dT%H:%M:%S.%f %Z')",
+				Transform:  "strptime(usage_start_time, '%Y-%m-%d %H:%M:%S %Z')",
 			},
 			{
 				ColumnName: "usage",
