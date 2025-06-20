@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/elastic/go-grok"
@@ -77,14 +76,18 @@ func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
 
 	if s.Config.Prefix != nil {
 		prefix = *s.Config.Prefix
-		if !strings.HasSuffix(prefix, "/") {
-			prefix = prefix + "/"
-		}
 		var newOptionalLayouts []string
 		for _, l := range optionalLayouts {
 			newOptionalLayouts = append(newOptionalLayouts, fmt.Sprintf("%s%s", prefix, l))
 		}
-		optionalLayouts = newOptionalLayouts
+		// Add support for collecting logs from storage buckets that use a flat structure (i.e., without directory-style prefixes).
+		// Currently, if a prefix is specified in the config, it is prepended to the layout pattern.
+		// For example, if the prefix is "2025-06-06" and the layout is "%{DATA:path}/%{DATA:endpoint}/%{DATA:folder_path}/%{YEAR:year}-%{MONTHNUM:month}-%{MONTHDAY:day}",
+		// the resulting layout becomes "2025-06-06%{DATA:path}/%{DATA:endpoint}/%{DATA:folder_path}/%{YEAR:year}-%{MONTHNUM:month}-%{MONTHDAY:day}",
+		// which breaks log collection from buckets using a flat file structure.
+		// To address this, we're preserving the existing behavior for directory-style buckets,
+		// while adding support for flat buckets as a new, optional configuration path.
+		optionalLayouts = append(optionalLayouts, newOptionalLayouts...)
 	}
 
 	err = s.walk(ctx, s.Config.Bucket, prefix, optionalLayouts, filterMap, g)
