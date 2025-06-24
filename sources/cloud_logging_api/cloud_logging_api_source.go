@@ -8,11 +8,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"cloud.google.com/go/logging/logadmin"
 	"google.golang.org/api/iterator"
-	proto "google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/turbot/tailpipe-plugin-gcp/config"
 	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
@@ -65,6 +62,7 @@ func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
 	filter := s.getLogNameFilter(project, logTypes, s.FromTime)
 
 	// TODO: #ratelimit implement rate limiting
+
 	// logEntry will now be the higher-level logging.Entry
 	var logEntry *logging.Entry
 	it := client.Entries(ctx, logadmin.Filter(filter), logadmin.PageSize(250))
@@ -78,27 +76,19 @@ func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry.Payload != nil {
-			var protoLogEntry loggingpb.LogEntry
-			// Unmarshal the anypb.Any into loggingpb.LogEntry
-			if anyPayload, ok := logEntry.Payload.(*anypb.Any); ok {
-				// If the assertion is successful, 'anyPayload' is now of type *anypb.Any
-				// and can be used with anypb.UnmarshalTo.
-				err := anypb.UnmarshalTo(anyPayload, &protoLogEntry, proto.UnmarshalOptions{})
-				if err != nil {
-					return fmt.Errorf("Warning: Could not unmarshal anypb.Any from Payload to loggingpb.LogEntry for log ID %s: %v", logEntry.InsertID, err)
-				}
+			logEntry.LogName = "" // remove logName from the log entry due to ToLogEntry requirements
+			protoLogEntry, err := logging.ToLogEntry(*logEntry, project)
+			if err != nil {
+				return fmt.Errorf("error converting log entry to loggingpb.LogEntry: %w", err)
 			}
 
-			// Use pbEntry (the *loggingpb.LogEntry) for collection state and RowData
-			// Note: CollectionState.ShouldCollect and OnCollected will now use pbEntry's fields
-			// Ensure pbEntry.Timestamp is converted to time.Time if ShouldCollect expects it.
-			if s.CollectionState.ShouldCollect(logEntry.InsertID, logEntry.Timestamp) {
+			if s.CollectionState.ShouldCollect(protoLogEntry.GetInsertId(), protoLogEntry.GetTimestamp().AsTime()) {
 				row := &types.RowData{
-					Data:             logEntry, // Pass the *loggingpb.LogEntry to the RowData
+					Data:             protoLogEntry, // Pass the *loggingpb.LogEntry to the RowData
 					SourceEnrichment: sourceEnrichmentFields,
 				}
 
-				if err = s.CollectionState.OnCollected(logEntry.InsertID, logEntry.Timestamp); err != nil {
+				if err = s.CollectionState.OnCollected(protoLogEntry.GetInsertId(), protoLogEntry.GetTimestamp().AsTime()); err != nil {
 					return fmt.Errorf("error updating collection state: %w", err)
 				}
 				if err = s.OnRow(ctx, row); err != nil {

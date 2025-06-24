@@ -4,6 +4,7 @@ package requests_log
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,10 +12,13 @@ import (
 	// for debugging
 	"os"
 
+	"cloud.google.com/go/logging"
 	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
 
 	"github.com/turbot/tailpipe-plugin-sdk/mappers"
 )
+
+var ErrSkipRow = errors.New("skipping row: not an HTTP request")
 
 func dumpRow(row *RequestsLog) {
 	f, err := os.Create("/tmp/row_debug.json")
@@ -39,6 +43,8 @@ func (m *RequestsLogMapper) Map(_ context.Context, a any, _ ...mappers.MapOption
 		return mapFromBucketJson([]byte(v))
 	case *loggingpb.LogEntry:
 		return mapFromSDKType(v)
+	case *logging.Entry:
+		return nil, fmt.Errorf("Logging.Entry did not convert to *loggingpb.LogEntry: %T", a)
 	case []byte:
 		return mapFromBucketJson(v)
 	default:
@@ -50,7 +56,8 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 	// === 1. Early exit for non-HTTP(S) logs or those missing a payload ===
 	if item.GetHttpRequest() == nil || item.GetJsonPayload() == nil {
 		// Return an error to skip this row instead of returning nil
-		return nil, fmt.Errorf("skipping non-HTTP request log entry")
+		// return nil, fmt.Errorf("skipping non-HTTP request log entry")
+		return nil, ErrSkipRow
 	}
 
 	row := NewRequestsLog()
@@ -78,12 +85,12 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 	if jsonPayload == nil {
 		jsonPayload = make(map[string]interface{})
 	}
-	
+
 	// Safely extract string fields with type checking
 	if v, ok := jsonPayload["backendTargetProjectNumber"].(string); ok {
 		row.BackendTargetProjectNumber = v
 	}
-	
+
 	// Handle CacheDecision specifically:
 	if rawCacheDecision, ok := jsonPayload["cacheDecision"].([]interface{}); ok {
 		// Iterate over the []interface{} and append string elements to row.CacheDecision
@@ -93,54 +100,47 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 			}
 		}
 	}
-	
+
 	if v, ok := jsonPayload["remoteIp"].(string); ok {
 		row.RemoteIp = v
 	}
-	
+
 	if v, ok := jsonPayload["statusDetails"].(string); ok {
 		row.StatusDetails = v
 	}
 
 	// Safely extract security policy map
-	securityPolicyMap, hasPolicy := jsonPayload["enforcedSecurityPolicy"].(map[string]interface{})
-	if !hasPolicy {
-		// Skip security policy mapping if not present
-		goto skipEnforcedPolicy
-	}
+	if securityPolicyMap, ok := jsonPayload["enforcedSecurityPolicy"].(map[string]interface{}); ok && securityPolicyMap != nil {
+		policy := &RequestLogSecurityPolicy{}
+		if val, ok := securityPolicyMap["configuredAction"].(string); ok {
+			policy.ConfiguredAction = val
+		}
+		if val, ok := securityPolicyMap["name"].(string); ok {
+			policy.Name = val
+		}
+		if val, ok := securityPolicyMap["outcome"].(string); ok {
+			policy.Outcome = val
+		}
+		if val, ok := securityPolicyMap["priority"].(float64); ok {
+			policy.Priority = int(val)
+		}
 
-	row.EnforcedSecurityPolicy = &RequestLogSecurityPolicy{}
-	
-	// Safely extract fields with type checking
-	if v, ok := securityPolicyMap["configuredAction"].(string); ok {
-		row.EnforcedSecurityPolicy.ConfiguredAction = v
-	}
-	if v, ok := securityPolicyMap["name"].(string); ok {
-		row.EnforcedSecurityPolicy.Name = v
-	}
-	if v, ok := securityPolicyMap["outcome"].(string); ok {
-		row.EnforcedSecurityPolicy.Outcome = v
-	}
-	if v, ok := securityPolicyMap["priority"].(float64); ok {
-		row.EnforcedSecurityPolicy.Priority = int(v)
-	}
-
-	// Handle PreconfiguredExpressionIds only if it exists *and* has values.
-	if rawIds, ok := securityPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok && len(rawIds) > 0 {
-		row.EnforcedSecurityPolicy.PreconfiguredExpressionIds = make([]string, 0, len(rawIds))
-		for _, id := range rawIds {
-			if idStr, ok := id.(string); ok {
-				row.EnforcedSecurityPolicy.PreconfiguredExpressionIds = append(row.EnforcedSecurityPolicy.PreconfiguredExpressionIds, idStr)
+		ids := []string{}
+		if rawIds, ok := securityPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok {
+			for _, id := range rawIds {
+				if s, ok := id.(string); ok {
+					ids = append(ids, s)
+				}
 			}
 		}
+		policy.PreconfiguredExpressionIds = ids
+		row.EnforcedSecurityPolicy = policy
 	}
-
-skipEnforcedPolicy:
 
 	if previewPolicyMap, ok := jsonPayload["previewSecurityPolicy"].(map[string]interface{}); ok {
 		// If it exists, initialize the PreviewSecurityPolicy struct
 		row.PreviewSecurityPolicy = &RequestLogSecurityPolicy{}
-		
+
 		// Safely extract fields with type checking
 		if v, ok := previewPolicyMap["configuredAction"].(string); ok {
 			row.PreviewSecurityPolicy.ConfiguredAction = v
@@ -169,14 +169,14 @@ skipEnforcedPolicy:
 	// Map SecurityPolicyRequestData if present
 	if secPolicyData, ok := jsonPayload["securityPolicyRequestData"].(map[string]interface{}); ok {
 		row.SecurityPolicyRequestData = &RequestLogSecurityPolicyRequestData{}
-		
+
 		if v, ok := secPolicyData["tlsJa3Fingerprint"].(string); ok {
 			row.SecurityPolicyRequestData.TlsJa3Fingerprint = v
 		}
 		if v, ok := secPolicyData["tlsJa4Fingerprint"].(string); ok {
 			row.SecurityPolicyRequestData.TlsJa4Fingerprint = v
 		}
-		
+
 		if remoteIpInfo, ok := secPolicyData["remoteIpInfo"].(map[string]interface{}); ok {
 			row.SecurityPolicyRequestData.RemoteIpInfo = &RequestLogRemoteIpInfo{}
 			if v, ok := remoteIpInfo["asn"].(float64); ok {
@@ -192,14 +192,14 @@ skipEnforcedPolicy:
 	// No 'if' check needed here for item.GetHttpRequest() because we already filtered.
 	httpRequestPb := item.GetHttpRequest()
 	row.HttpRequest = &RequestLogHttpRequest{
-		RequestMethod:                  httpRequestPb.GetRequestMethod(),
-		RequestUrl:                     httpRequestPb.GetRequestUrl(),
-		RequestSize:                    strconv.FormatInt(httpRequestPb.GetRequestSize(), 10),
-		Referer:                        httpRequestPb.GetReferer(),
-		UserAgent:                      httpRequestPb.GetUserAgent(),
-		Status:                         httpRequestPb.GetStatus(),
-		ResponseSize:                   strconv.FormatInt(httpRequestPb.GetResponseSize(), 10),
-		RemoteIp:                       httpRequestPb.GetRemoteIp(),
+		RequestMethod: httpRequestPb.GetRequestMethod(),
+		RequestUrl:    httpRequestPb.GetRequestUrl(),
+		RequestSize:   strconv.FormatInt(httpRequestPb.GetRequestSize(), 10),
+		Referer:       httpRequestPb.GetReferer(),
+		UserAgent:     httpRequestPb.GetUserAgent(),
+		Status:        httpRequestPb.GetStatus(),
+		ResponseSize:  strconv.FormatInt(httpRequestPb.GetResponseSize(), 10),
+		RemoteIp:      httpRequestPb.GetRemoteIp(),
 		Latency: func() string {
 			if lat := httpRequestPb.GetLatency(); lat != nil {
 				return lat.String()
@@ -226,7 +226,8 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 	// Filter out log entries that are not HTTP requests.
 	if log.HttpRequest == nil || log.JsonPayload == nil {
 		// Return an error to skip this row instead of returning nil
-		return nil, fmt.Errorf("skipping non-HTTP request log entry")
+		// return nil, fmt.Errorf("skipping non-HTTP request log entry")
+		return nil, ErrSkipRow
 	}
 
 	row := NewRequestsLog()
