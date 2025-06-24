@@ -1,0 +1,158 @@
+package cloud_logging_api
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings" // Assuming this is still used in getLogNameFilter
+	"time"
+
+	"cloud.google.com/go/logging"
+	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
+	"cloud.google.com/go/logging/logadmin"
+	"google.golang.org/api/iterator"
+	proto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/turbot/tailpipe-plugin-gcp/config"
+	"github.com/turbot/tailpipe-plugin-sdk/collection_state"
+	"github.com/turbot/tailpipe-plugin-sdk/row_source"
+	"github.com/turbot/tailpipe-plugin-sdk/schema"
+	"github.com/turbot/tailpipe-plugin-sdk/types"
+)
+
+const CloudLoggingAPISourceIdentifier = "gcp_cloud_logging_api"
+
+// CloudLoggingAPISource source is responsible for collecting cloud logs from GCP
+type CloudLoggingAPISource struct {
+	row_source.RowSourceImpl[*CloudLoggingAPISourceConfig, *config.GcpConnection]
+}
+
+func (s *CloudLoggingAPISource) Init(ctx context.Context, params *row_source.RowSourceParams, opts ...row_source.RowSourceOption) error {
+	// set the collection state ctor
+	s.NewCollectionStateFunc = collection_state.NewTimeRangeCollectionState
+
+	// call base init
+	return s.RowSourceImpl.Init(ctx, params, opts...)
+}
+
+func (s *CloudLoggingAPISource) Identifier() string {
+	return CloudLoggingAPISourceIdentifier
+}
+
+func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
+	project := s.Connection.GetProject()
+	var logTypes []string
+	if s.Config != nil && s.Config.LogTypes != nil {
+		logTypes = s.Config.LogTypes
+	}
+
+	client, err := s.getClient(ctx, project)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	sourceName := CloudLoggingAPISourceIdentifier
+	sourceEnrichmentFields := &schema.SourceEnrichment{
+		CommonFields: schema.CommonFields{
+			TpSourceName:     &sourceName,
+			TpSourceType:     CloudLoggingAPISourceIdentifier,
+			TpSourceLocation: &project,
+		},
+	}
+
+	filter := s.getLogNameFilter(project, logTypes, s.FromTime)
+
+	// TODO: #ratelimit implement rate limiting
+	// logEntry will now be the higher-level logging.Entry
+	var logEntry *logging.Entry
+	it := client.Entries(ctx, logadmin.Filter(filter), logadmin.PageSize(250))
+	for {
+		logEntry, err = it.Next()
+		if err != nil && errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error fetching log entries, %w", err)
+		}
+
+		if logEntry.Payload != nil {
+			var protoLogEntry loggingpb.LogEntry
+			// Unmarshal the anypb.Any into loggingpb.LogEntry
+			if anyPayload, ok := logEntry.Payload.(*anypb.Any); ok {
+				// If the assertion is successful, 'anyPayload' is now of type *anypb.Any
+				// and can be used with anypb.UnmarshalTo.
+				err := anypb.UnmarshalTo(anyPayload, &protoLogEntry, proto.UnmarshalOptions{})
+				if err != nil {
+					return fmt.Errorf("Warning: Could not unmarshal anypb.Any from Payload to loggingpb.LogEntry for log ID %s: %v", logEntry.InsertID, err)
+				}
+			}
+
+			// Use pbEntry (the *loggingpb.LogEntry) for collection state and RowData
+			// Note: CollectionState.ShouldCollect and OnCollected will now use pbEntry's fields
+			// Ensure pbEntry.Timestamp is converted to time.Time if ShouldCollect expects it.
+			if s.CollectionState.ShouldCollect(logEntry.InsertID, logEntry.Timestamp) {
+				row := &types.RowData{
+					Data:             logEntry, // Pass the *loggingpb.LogEntry to the RowData
+					SourceEnrichment: sourceEnrichmentFields,
+				}
+
+				if err = s.CollectionState.OnCollected(logEntry.InsertID, logEntry.Timestamp); err != nil {
+					return fmt.Errorf("error updating collection state: %w", err)
+				}
+				if err = s.OnRow(ctx, row); err != nil {
+					return fmt.Errorf("error processing row: %w", err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *CloudLoggingAPISource) getClient(ctx context.Context, project string) (*logadmin.Client, error) {
+	opts, err := s.Connection.GetClientOptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if project == "" {
+		return nil, errors.New("unable to determine active project, please set project in configuration or env var CLOUDSDK_CORE_PROJECT / GCP_PROJECT")
+	}
+
+	client, err := logadmin.NewClient(ctx, project, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func (s *CloudLoggingAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
+	requestsLog := fmt.Sprintf(`"projects/%s/logs/requests"`, projectId)
+	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
+
+	// short-circuit default
+	if len(logTypes) == 0 {
+		return fmt.Sprintf("logName=%s %s", requestsLog, timePart)
+	}
+
+	// Only request logs supported at implementation.  Append additional cases for other log types as needed
+	var selected []string
+	for _, logType := range logTypes {
+		switch logType {
+		case "requests":
+			selected = append(selected, requestsLog)
+		}
+	}
+
+	switch len(selected) {
+	case 0:
+		return fmt.Sprintf("logName=%s %s", requestsLog, timePart)
+	case 1:
+		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
+	default:
+		return fmt.Sprintf("logName=(%s) %s", strings.Join(selected, " OR "), timePart)
+	}
+}
