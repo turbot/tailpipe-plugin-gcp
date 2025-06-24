@@ -49,7 +49,8 @@ func (m *RequestsLogMapper) Map(_ context.Context, a any, _ ...mappers.MapOption
 func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 	// === 1. Early exit for non-HTTP(S) logs or those missing a payload ===
 	if item.GetHttpRequest() == nil || item.GetJsonPayload() == nil {
-		return nil, nil
+		// Return an error to skip this row instead of returning nil
+		return nil, fmt.Errorf("skipping non-HTTP request log entry")
 	}
 
 	row := NewRequestsLog()
@@ -74,7 +75,15 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 
 	// === 4. Map JsonPayload (for LB/Cloud Armor specific data) ===
 	jsonPayload := item.GetJsonPayload().AsMap()
-	row.BackendTargetProjectNumber = jsonPayload["backendTargetProjectNumber"].(string)
+	if jsonPayload == nil {
+		jsonPayload = make(map[string]interface{})
+	}
+	
+	// Safely extract string fields with type checking
+	if v, ok := jsonPayload["backendTargetProjectNumber"].(string); ok {
+		row.BackendTargetProjectNumber = v
+	}
+	
 	// Handle CacheDecision specifically:
 	if rawCacheDecision, ok := jsonPayload["cacheDecision"].([]interface{}); ok {
 		// Iterate over the []interface{} and append string elements to row.CacheDecision
@@ -84,42 +93,97 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 			}
 		}
 	}
-	row.RemoteIp = jsonPayload["remoteIp"].(string)
-	row.StatusDetails = jsonPayload["statusDetails"].(string)
+	
+	if v, ok := jsonPayload["remoteIp"].(string); ok {
+		row.RemoteIp = v
+	}
+	
+	if v, ok := jsonPayload["statusDetails"].(string); ok {
+		row.StatusDetails = v
+	}
 
-	securityPolicyMap := jsonPayload["enforcedSecurityPolicy"].(map[string]interface{})
+	// Safely extract security policy map
+	securityPolicyMap, hasPolicy := jsonPayload["enforcedSecurityPolicy"].(map[string]interface{})
+	if !hasPolicy {
+		// Skip security policy mapping if not present
+		goto skipEnforcedPolicy
+	}
 
-	row.EnforcedSecurityPolicy = &RequestLogSecurityPolicy{
-		// Direct assignments for guaranteed scalar fields
-		ConfiguredAction: securityPolicyMap["configuredAction"].(string),
-		Name:             securityPolicyMap["name"].(string),
-		Outcome:          securityPolicyMap["outcome"].(string),
-		Priority:         int(securityPolicyMap["priority"].(float64)), // JSON numbers are float64
+	row.EnforcedSecurityPolicy = &RequestLogSecurityPolicy{}
+	
+	// Safely extract fields with type checking
+	if v, ok := securityPolicyMap["configuredAction"].(string); ok {
+		row.EnforcedSecurityPolicy.ConfiguredAction = v
+	}
+	if v, ok := securityPolicyMap["name"].(string); ok {
+		row.EnforcedSecurityPolicy.Name = v
+	}
+	if v, ok := securityPolicyMap["outcome"].(string); ok {
+		row.EnforcedSecurityPolicy.Outcome = v
+	}
+	if v, ok := securityPolicyMap["priority"].(float64); ok {
+		row.EnforcedSecurityPolicy.Priority = int(v)
 	}
 
 	// Handle PreconfiguredExpressionIds only if it exists *and* has values.
 	if rawIds, ok := securityPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok && len(rawIds) > 0 {
 		row.EnforcedSecurityPolicy.PreconfiguredExpressionIds = make([]string, 0, len(rawIds))
 		for _, id := range rawIds {
-			row.EnforcedSecurityPolicy.PreconfiguredExpressionIds = append(row.EnforcedSecurityPolicy.PreconfiguredExpressionIds, id.(string))
+			if idStr, ok := id.(string); ok {
+				row.EnforcedSecurityPolicy.PreconfiguredExpressionIds = append(row.EnforcedSecurityPolicy.PreconfiguredExpressionIds, idStr)
+			}
 		}
 	}
 
+skipEnforcedPolicy:
+
 	if previewPolicyMap, ok := jsonPayload["previewSecurityPolicy"].(map[string]interface{}); ok {
 		// If it exists, initialize the PreviewSecurityPolicy struct
-		row.PreviewSecurityPolicy = &RequestLogSecurityPolicy{
-			// Direct assignments for its guaranteed scalar fields within previewPolicyMap
-			ConfiguredAction: previewPolicyMap["configuredAction"].(string),
-			Name:             previewPolicyMap["name"].(string),
-			Outcome:          previewPolicyMap["outcome"].(string),
-			Priority:         int(previewPolicyMap["priority"].(float64)), // JSON numbers are float64
+		row.PreviewSecurityPolicy = &RequestLogSecurityPolicy{}
+		
+		// Safely extract fields with type checking
+		if v, ok := previewPolicyMap["configuredAction"].(string); ok {
+			row.PreviewSecurityPolicy.ConfiguredAction = v
+		}
+		if v, ok := previewPolicyMap["name"].(string); ok {
+			row.PreviewSecurityPolicy.Name = v
+		}
+		if v, ok := previewPolicyMap["outcome"].(string); ok {
+			row.PreviewSecurityPolicy.Outcome = v
+		}
+		if v, ok := previewPolicyMap["priority"].(float64); ok {
+			row.PreviewSecurityPolicy.Priority = int(v)
 		}
 
 		// Handle PreconfiguredExpressionIds within PreviewSecurityPolicy only if it exists and has values.
 		if rawIds, ok := previewPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok && len(rawIds) > 0 {
 			row.PreviewSecurityPolicy.PreconfiguredExpressionIds = make([]string, 0, len(rawIds))
 			for _, id := range rawIds {
-				row.PreviewSecurityPolicy.PreconfiguredExpressionIds = append(row.PreviewSecurityPolicy.PreconfiguredExpressionIds, id.(string))
+				if idStr, ok := id.(string); ok {
+					row.PreviewSecurityPolicy.PreconfiguredExpressionIds = append(row.PreviewSecurityPolicy.PreconfiguredExpressionIds, idStr)
+				}
+			}
+		}
+	}
+
+	// Map SecurityPolicyRequestData if present
+	if secPolicyData, ok := jsonPayload["securityPolicyRequestData"].(map[string]interface{}); ok {
+		row.SecurityPolicyRequestData = &RequestLogSecurityPolicyRequestData{}
+		
+		if v, ok := secPolicyData["tlsJa3Fingerprint"].(string); ok {
+			row.SecurityPolicyRequestData.TlsJa3Fingerprint = v
+		}
+		if v, ok := secPolicyData["tlsJa4Fingerprint"].(string); ok {
+			row.SecurityPolicyRequestData.TlsJa4Fingerprint = v
+		}
+		
+		if remoteIpInfo, ok := secPolicyData["remoteIpInfo"].(map[string]interface{}); ok {
+			row.SecurityPolicyRequestData.RemoteIpInfo = &RequestLogRemoteIpInfo{}
+			if v, ok := remoteIpInfo["asn"].(float64); ok {
+				row.SecurityPolicyRequestData.RemoteIpInfo.Asn = int(v)
+			}
+			if v, ok := remoteIpInfo["regionCode"].(string); ok {
+				row.SecurityPolicyRequestData.RemoteIpInfo.RegionCode = v
 			}
 		}
 	}
@@ -136,7 +200,12 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 		Status:                         httpRequestPb.GetStatus(),
 		ResponseSize:                   strconv.FormatInt(httpRequestPb.GetResponseSize(), 10),
 		RemoteIp:                       httpRequestPb.GetRemoteIp(),
-		Latency:                        httpRequestPb.GetLatency().String(),
+		Latency: func() string {
+			if lat := httpRequestPb.GetLatency(); lat != nil {
+				return lat.String()
+			}
+			return ""
+		}(),
 		ServerIp:                       httpRequestPb.GetServerIp(),
 		Protocol:                       httpRequestPb.GetProtocol(),
 		CacheFillBytes:                 strconv.FormatInt(httpRequestPb.GetCacheFillBytes(), 10),
@@ -156,7 +225,8 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 
 	// Filter out log entries that are not HTTP requests.
 	if log.HttpRequest == nil || log.JsonPayload == nil {
-		return nil, nil
+		// Return an error to skip this row instead of returning nil
+		return nil, fmt.Errorf("skipping non-HTTP request log entry")
 	}
 
 	row := NewRequestsLog()
