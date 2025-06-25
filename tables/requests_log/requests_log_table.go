@@ -90,7 +90,7 @@ func (c *RequestsLogTable) EnrichRow(row *RequestsLog, sourceEnrichmentFields sc
 		row.TpDestinationIP = &emptyStr
 		row.TpSourceIP = &emptyStr
 	}
-	dumpRow(row)
+
 	return row, nil
 }
 

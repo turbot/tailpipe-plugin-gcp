@@ -4,31 +4,17 @@ package requests_log
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	// for debugging
-	"os"
 
 	"cloud.google.com/go/logging"
 	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
 
 	"github.com/turbot/tailpipe-plugin-sdk/mappers"
 )
-
-var ErrSkipRow = errors.New("skipping row: not an HTTP request")
-
-func dumpRow(row *RequestsLog) {
-	f, err := os.Create("/tmp/row_debug.json")
-	if err == nil {
-		defer f.Close()
-		enc := json.NewEncoder(f)
-		enc.SetIndent("", "  ")
-		enc.Encode(row)
-	}
-}
 
 type RequestsLogMapper struct {
 }
@@ -53,12 +39,6 @@ func (m *RequestsLogMapper) Map(_ context.Context, a any, _ ...mappers.MapOption
 }
 
 func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
-	// === 1. Early exit for non-HTTP(S) logs or those missing a payload ===
-	if item.GetHttpRequest() == nil || item.GetJsonPayload() == nil {
-		// Return an error to skip this row instead of returning nil
-		// return nil, fmt.Errorf("skipping non-HTTP request log entry")
-		return nil, ErrSkipRow
-	}
 
 	row := NewRequestsLog()
 
@@ -188,30 +168,32 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 		}
 	}
 
-	// === 5. Map HTTPRequest (guaranteed to be present due to early exit) ===
-	// No 'if' check needed here for item.GetHttpRequest() because we already filtered.
-	httpRequestPb := item.GetHttpRequest()
-	row.HttpRequest = &RequestLogHttpRequest{
-		RequestMethod: httpRequestPb.GetRequestMethod(),
-		RequestUrl:    httpRequestPb.GetRequestUrl(),
-		RequestSize:   strconv.FormatInt(httpRequestPb.GetRequestSize(), 10),
-		Referer:       httpRequestPb.GetReferer(),
-		UserAgent:     httpRequestPb.GetUserAgent(),
-		Status:        httpRequestPb.GetStatus(),
-		ResponseSize:  strconv.FormatInt(httpRequestPb.GetResponseSize(), 10),
-		RemoteIp:      httpRequestPb.GetRemoteIp(),
-		Latency: func() string {
-			if lat := httpRequestPb.GetLatency(); lat != nil {
-				return lat.String()
-			}
-			return ""
-		}(),
-		ServerIp:                       httpRequestPb.GetServerIp(),
-		Protocol:                       httpRequestPb.GetProtocol(),
-		CacheFillBytes:                 strconv.FormatInt(httpRequestPb.GetCacheFillBytes(), 10),
-		CacheLookup:                    httpRequestPb.GetCacheLookup(),
-		CacheHit:                       httpRequestPb.GetCacheHit(),
-		CacheValidatedWithOriginServer: httpRequestPb.GetCacheValidatedWithOriginServer(),
+	if item.GetHttpRequest() == nil {
+		row.HttpRequest = &RequestLogHttpRequest{}
+	} else {
+		httpRequestPb := item.GetHttpRequest()
+		row.HttpRequest = &RequestLogHttpRequest{
+			RequestMethod: httpRequestPb.GetRequestMethod(),
+			RequestUrl:    httpRequestPb.GetRequestUrl(),
+			RequestSize:   strconv.FormatInt(httpRequestPb.GetRequestSize(), 10),
+			Referer:       httpRequestPb.GetReferer(),
+			UserAgent:     httpRequestPb.GetUserAgent(),
+			Status:        httpRequestPb.GetStatus(),
+			ResponseSize:  strconv.FormatInt(httpRequestPb.GetResponseSize(), 10),
+			RemoteIp:      httpRequestPb.GetRemoteIp(),
+			Latency: func() string {
+				if lat := httpRequestPb.GetLatency(); lat != nil {
+					return lat.String()
+				}
+				return ""
+			}(),
+			ServerIp:                       httpRequestPb.GetServerIp(),
+			Protocol:                       httpRequestPb.GetProtocol(),
+			CacheFillBytes:                 strconv.FormatInt(httpRequestPb.GetCacheFillBytes(), 10),
+			CacheLookup:                    httpRequestPb.GetCacheLookup(),
+			CacheHit:                       httpRequestPb.GetCacheHit(),
+			CacheValidatedWithOriginServer: httpRequestPb.GetCacheValidatedWithOriginServer(),
+		}
 	}
 
 	return row, nil
@@ -221,13 +203,6 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 	var log requestsLog
 	if err := json.Unmarshal(itemBytes, &log); err != nil {
 		return nil, fmt.Errorf("failed to parse requests log JSON: %w", err)
-	}
-
-	// Filter out log entries that are not HTTP requests.
-	if log.HttpRequest == nil || log.JsonPayload == nil {
-		// Return an error to skip this row instead of returning nil
-		// return nil, fmt.Errorf("skipping non-HTTP request log entry")
-		return nil, ErrSkipRow
 	}
 
 	row := NewRequestsLog()
@@ -242,7 +217,7 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 	row.SpanId = log.SpanId
 	row.TraceSampled = log.TraceSampled
 
-	// FIX: Only create objects if they exist in the source log.
+	// Only create objects if they exist in the source log.
 	// This avoids creating empty-but-non-nil objects that the downstream
 	// validator might reject.
 
@@ -308,25 +283,26 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 		}
 	}
 
-	// HttpRequest is guaranteed non-nil by the filter at the top of the function.
-	row.HttpRequest = &RequestLogHttpRequest{
-		RequestMethod:                  log.HttpRequest.RequestMethod,
-		RequestUrl:                     log.HttpRequest.RequestURL,
-		RequestSize:                    log.HttpRequest.RequestSize,
-		Status:                         log.HttpRequest.Status,
-		ResponseSize:                   log.HttpRequest.ResponseSize,
-		UserAgent:                      log.HttpRequest.UserAgent,
-		RemoteIp:                       log.HttpRequest.RemoteIP,
-		ServerIp:                       log.HttpRequest.ServerIP,
-		Referer:                        log.HttpRequest.Referer,
-		Latency:                        log.HttpRequest.Latency,
-		CacheLookup:                    log.HttpRequest.CacheLookup,
-		CacheHit:                       log.HttpRequest.CacheHit,
-		CacheValidatedWithOriginServer: log.HttpRequest.CacheValidatedWithOriginServer,
-		CacheFillBytes:                 log.HttpRequest.CacheFillBytes,
+	if log.HttpRequest == nil {
+		row.HttpRequest = &RequestLogHttpRequest{}
+	} else {
+		row.HttpRequest = &RequestLogHttpRequest{
+			RequestMethod:                  log.HttpRequest.RequestMethod,
+			RequestUrl:                     log.HttpRequest.RequestURL,
+			RequestSize:                    log.HttpRequest.RequestSize,
+			Status:                         log.HttpRequest.Status,
+			ResponseSize:                   log.HttpRequest.ResponseSize,
+			UserAgent:                      log.HttpRequest.UserAgent,
+			RemoteIp:                       log.HttpRequest.RemoteIP,
+			ServerIp:                       log.HttpRequest.ServerIP,
+			Referer:                        log.HttpRequest.Referer,
+			Latency:                        log.HttpRequest.Latency,
+			CacheLookup:                    log.HttpRequest.CacheLookup,
+			CacheHit:                       log.HttpRequest.CacheHit,
+			CacheValidatedWithOriginServer: log.HttpRequest.CacheValidatedWithOriginServer,
+			CacheFillBytes:                 log.HttpRequest.CacheFillBytes,
+		}
 	}
-
-	// dumpRow(row)
 
 	return row, nil
 }

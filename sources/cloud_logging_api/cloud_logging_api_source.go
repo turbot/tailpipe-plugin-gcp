@@ -76,7 +76,7 @@ func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
 		}
 
 		if logEntry.Payload != nil {
-			logEntry.LogName = "" // remove logName from the log entry due to ToLogEntry requirements
+			logEntry.LogName = "" // remove logName from the log entry due to ToLogEntry requirements of an empty string
 			protoLogEntry, err := logging.ToLogEntry(*logEntry, project)
 			if err != nil {
 				return fmt.Errorf("error converting log entry to loggingpb.LogEntry: %w", err)
@@ -84,7 +84,7 @@ func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
 
 			if s.CollectionState.ShouldCollect(protoLogEntry.GetInsertId(), protoLogEntry.GetTimestamp().AsTime()) {
 				row := &types.RowData{
-					Data:             protoLogEntry, // Pass the *loggingpb.LogEntry to the RowData
+					Data:             protoLogEntry,
 					SourceEnrichment: sourceEnrichmentFields,
 				}
 
