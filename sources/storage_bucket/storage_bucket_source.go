@@ -80,7 +80,7 @@ func (s *GcpStorageBucketSource) DiscoverArtifacts(ctx context.Context) error {
 		for _, l := range optionalLayouts {
 			newOptionalLayouts = append(newOptionalLayouts, fmt.Sprintf("%s%s", prefix, l))
 		}
-		// Add support for collecting logs from storage buckets that use a flat structure (i.e., without directory-style prefixes).
+		// Add support for collecting logs from GCS buckets that use a flat structure (i.e., without directory-style prefixes).
 		// Currently, if a prefix is specified in the config, it is prepended to the layout pattern.
 		// For example, if the prefix is "2025-06-06" and the layout is "%{DATA:path}/%{DATA:endpoint}/%{DATA:folder_path}/%{YEAR:year}-%{MONTHNUM:month}-%{MONTHDAY:day}",
 		// the resulting layout becomes "2025-06-06%{DATA:path}/%{DATA:endpoint}/%{DATA:folder_path}/%{YEAR:year}-%{MONTHNUM:month}-%{MONTHDAY:day}",
