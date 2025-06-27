@@ -61,6 +61,21 @@ partition "gcp_audit_log" "my_logs_prefix" {
 }
 ```
 
+### Collect audit logs for a specific date from flat file layout in GCS
+
+Collect logs from a GCS bucket where files are stored using a flat object layout, and filter by prefix to only retrieve logs for a specific day.
+
+```hcl
+partition "gcp_audit_log" "my_logs" {
+  source "gcp_storage_bucket" {
+    connection  = connection.gcp.logging_account
+    bucket      = "gcp-audit-logs-bucket"
+    prefix      = "2025-06-07"
+    file_layout = `%{DATA:file_name}.json`
+  }
+}
+```
+
 ## Arguments
 
 | Argument    | Type             | Required | Default                  | Description                                                                                                                   |
