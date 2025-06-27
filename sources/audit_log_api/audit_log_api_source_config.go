@@ -2,6 +2,7 @@ package audit_log_api
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -17,7 +18,9 @@ func (a *AuditLogAPISourceConfig) Validate() error {
 	validLogTypes := []string{"activity", "data_access", "system_event", "policy"}
 
 	for _, logType := range a.LogTypes {
-		return fmt.Errorf("invalid log type %s, valid log types are %s", logType, strings.Join(validLogTypes, ", "))
+		if !slices.Contains(validLogTypes, logType) {
+			return fmt.Errorf("invalid log type %s, valid log types are %s", logType, strings.Join(validLogTypes, ", "))
+		}
 	}
 	return nil
 }
