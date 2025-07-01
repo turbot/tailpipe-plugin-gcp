@@ -59,7 +59,8 @@ func (s *AuditLogAPISource) Collect(ctx context.Context) error {
 		},
 	}
 
-	filter := s.getLogNameFilter(project, logTypes, s.FromTime)
+	// build the filter to fetch the logs for the given project, log types and time range
+	filter := s.getLogFilter(project, logTypes, s.CollectionTimeRange)
 
 	// TODO: #ratelimit implement rate limiting
 	var logEntry *logging.Entry
@@ -111,12 +112,15 @@ func (s *AuditLogAPISource) getClient(ctx context.Context, project string) (*log
 	return client, nil
 }
 
-func (s *AuditLogAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
+func (s *AuditLogAPISource) getLogFilter(projectId string, logTypes []string, timeRange collection_state.DirectionalTimeRange) string {
 	activity := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sactivity"`, projectId, "%2F")
 	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
 	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
 	policyDenied := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%spolicy"`, projectId, "%2F")
-	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
+	// construct filter for time range
+	timePart := fmt.Sprintf(`AND (timestamp >= "%s") AND (timestamp < "%s")`,
+		timeRange.StartTime().Format(time.RFC3339Nano),
+		timeRange.EndTime().Format(time.RFC3339Nano))
 
 	// short-circuit default
 	if len(logTypes) == 0 {
