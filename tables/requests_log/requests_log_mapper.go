@@ -249,6 +249,11 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 			Name:                       log.JsonPayload.EnforcedSecurityPolicy.Name,
 			Outcome:                    log.JsonPayload.EnforcedSecurityPolicy.Outcome,
 			Priority:                   log.JsonPayload.EnforcedSecurityPolicy.Priority,
+			MatchedFieldType:           log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldType,
+			MatchedFieldValue:          log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldValue,
+			MatchedFieldName:           log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldName,
+			MatchedOffset:              log.JsonPayload.EnforcedSecurityPolicy.MatchedOffset,
+			MatchedLength:              log.JsonPayload.EnforcedSecurityPolicy.MatchedLength,
 			PreconfiguredExpressionIds: ids,
 		}
 	}
@@ -263,6 +268,11 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 			Name:                       log.JsonPayload.PreviewSecurityPolicy.Name,
 			Outcome:                    log.JsonPayload.PreviewSecurityPolicy.Outcome,
 			Priority:                   log.JsonPayload.PreviewSecurityPolicy.Priority,
+			MatchedFieldType:           log.JsonPayload.PreviewSecurityPolicy.MatchedFieldType,
+			MatchedFieldValue:          log.JsonPayload.PreviewSecurityPolicy.MatchedFieldValue,
+			MatchedFieldName:           log.JsonPayload.PreviewSecurityPolicy.MatchedFieldName,
+			MatchedOffset:              log.JsonPayload.PreviewSecurityPolicy.MatchedOffset,
+			MatchedLength:              log.JsonPayload.PreviewSecurityPolicy.MatchedLength,
 			PreconfiguredExpressionIds: ids,
 		}
 	}
@@ -330,6 +340,8 @@ type jsonPayload struct {
 	TypeName                   string                               `json:"@type"`
 	BackendTargetProjectNumber string                               `json:"backendTargetProjectNumber"`
 	CacheDecision              []string                             `json:"cacheDecision"`
+	CacheId                    string                               `json:"cacheId,omitempty"`
+	CompressionStatus          string                               `json:"compressionStatus,omitempty"`
 	EnforcedSecurityPolicy     *requestLogEnforcedSecurityPolicy    `json:"enforcedSecurityPolicy"`
 	PreviewSecurityPolicy      *requestLogPreviewSecurityPolicy     `json:"previewSecurityPolicy,omitempty"`
 	SecurityPolicyRequestData  *requestLogSecurityPolicyRequestData `json:"securityPolicyRequestData"`
@@ -355,28 +367,64 @@ type httpRequest struct {
 }
 
 type requestLogEnforcedSecurityPolicy struct {
-	ConfiguredAction           string   `json:"configuredAction"`
-	Name                       string   `json:"name"`
-	Outcome                    string   `json:"outcome"`
-	Priority                   int      `json:"priority"`
-	PreconfiguredExpressionIds []string `json:"preconfiguredExpressionIds,omitempty"`
+	ConfiguredAction           string                        `json:"configuredAction"`
+	Name                       string                        `json:"name"`
+	Outcome                    string                        `json:"outcome"`
+	Priority                   int                           `json:"priority"`
+	PreconfiguredExpressionIds []string                      `json:"preconfiguredExpressionIds,omitempty"`
+	RateLimitAction            *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
+	ThreatIntelligence         *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
+	AddressGroup               *requestLogAddressGroup       `json:"addressGroup,omitempty"`
+	MatchedFieldType           string                        `json:"matchedFieldType,omitempty"`
+	MatchedFieldValue          string                        `json:"matchedFieldValue,omitempty"`
+	MatchedFieldName           string                        `json:"matchedFieldName,omitempty"`
+	MatchedOffset              int                           `json:"matchedOffset,omitempty"`
+	MatchedLength              int                           `json:"matchedLength,omitempty"`
 }
 
 type requestLogPreviewSecurityPolicy struct {
-	ConfiguredAction           string   `json:"configuredAction"`
-	Name                       string   `json:"name"`
-	Outcome                    string   `json:"outcome"`
-	Priority                   int      `json:"priority"`
-	PreconfiguredExpressionIds []string `json:"preconfiguredExpressionIds,omitempty"`
+	ConfiguredAction           string                        `json:"configuredAction"`
+	Name                       string                        `json:"name"`
+	Outcome                    string                        `json:"outcome"`
+	Priority                   int                           `json:"priority"`
+	PreconfiguredExpressionIds []string                      `json:"preconfiguredExpressionIds,omitempty"`
+	RateLimitAction            *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
+	ThreatIntelligence         *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
+	AddressGroup               *requestLogAddressGroup       `json:"addressGroup,omitempty"`
+	MatchedFieldType           string                        `json:"matchedFieldType,omitempty"`
+	MatchedFieldValue          string                        `json:"matchedFieldValue,omitempty"`
+	MatchedFieldName           string                        `json:"matchedFieldName,omitempty"`
+	MatchedFieldLength         int                           `json:"matchedFieldLength,omitempty"`
+	MatchedOffset              int                           `json:"matchedOffset,omitempty"`
+	MatchedLength              int                           `json:"matchedLength,omitempty"`
 }
 
 type requestLogSecurityPolicyRequestData struct {
-	RemoteIpInfo      *requestLogRemoteIpInfo `json:"remoteIpInfo"`
-	TlsJa3Fingerprint string                  `json:"tlsJa3Fingerprint"`
-	TlsJa4Fingerprint string                  `json:"tlsJa4Fingerprint"`
+	RemoteIpInfo          *requestLogRemoteIpInfo   `json:"remoteIpInfo"`
+	TlsJa3Fingerprint     string                    `json:"tlsJa3Fingerprint"`
+	TlsJa4Fingerprint     string                    `json:"tlsJa4Fingerprint"`
+	RecaptchaActionToken  *requestLogRecaptchaToken `json:"recaptchaActionToken,omitempty"`
+	RecaptchaSessionToken *requestLogRecaptchaToken `json:"recaptchaSessionToken,omitempty"`
 }
 
 type requestLogRemoteIpInfo struct {
 	Asn        int    `json:"asn"`
 	RegionCode string `json:"regionCode"`
+}
+
+type requestLogRecaptchaToken struct {
+	Score float64 `json:"score"`
+}
+
+type requestLogRateLimitAction struct {
+	Key     string `json:"key"`
+	Outcome string `json:"outcome"`
+}
+
+type requestLogThreatIntelligence struct {
+	Categories []string `json:"categories"`
+}
+
+type requestLogAddressGroup struct {
+	Names []string `json:"names"`
 }
