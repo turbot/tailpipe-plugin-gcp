@@ -13,7 +13,7 @@ require (
 	github.com/rs/xid v1.6.0
 	github.com/turbot/go-kit v1.3.0
 	github.com/turbot/pipe-fittings/v2 v2.5.2
-	github.com/turbot/tailpipe-plugin-sdk v0.9.0-rc.3
+	github.com/turbot/tailpipe-plugin-sdk v0.9.0-rc.5
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.232.0
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb
