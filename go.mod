@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/storage v1.54.0
 	github.com/elastic/go-grok v0.3.1
-	github.com/hashicorp/hcl/v2 v2.20.1
+	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rs/xid v1.6.0
 	github.com/turbot/go-kit v1.3.0
