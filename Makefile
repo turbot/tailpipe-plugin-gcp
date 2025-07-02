@@ -6,15 +6,9 @@ PLUGIN_BINARY = $(PLUGIN_DIR)/tailpipe-plugin-gcp.plugin
 VERSION_JSON = $(PLUGIN_DIR)/version.json
 VERSIONS_JSON = $(TAILPIPE_INSTALL_DIR)/plugins/versions.json
 
-.PHONY: install debug
+.PHONY: install
 
 install:
 	go build -o $(PLUGIN_BINARY) -tags "${BUILD_TAGS}" *.go
-	$(PLUGIN_BINARY) metadata > $(VERSION_JSON)
-	rm -f $(VERSIONS_JSON)
-
-debug:
-	@echo "Building and installing debug plugin…"
-	go build -gcflags="all=-N -l" -o $(PLUGIN_BINARY) -tags "${BUILD_TAGS}" *.go
 	$(PLUGIN_BINARY) metadata > $(VERSION_JSON)
 	rm -f $(VERSIONS_JSON)

@@ -105,15 +105,10 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 			policy.Priority = int(val)
 		}
 
-		ids := []string{}
 		if rawIds, ok := securityPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok {
-			for _, id := range rawIds {
-				if s, ok := id.(string); ok {
-					ids = append(ids, s)
-				}
-			}
+			rule_id := rawIds[0].(string)
+			policy.PreconfiguredExprId = rule_id
 		}
-		policy.PreconfiguredExpressionIds = ids
 		row.EnforcedSecurityPolicy = policy
 	}
 
@@ -137,12 +132,8 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 
 		// Handle PreconfiguredExpressionIds within PreviewSecurityPolicy only if it exists and has values.
 		if rawIds, ok := previewPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok && len(rawIds) > 0 {
-			row.PreviewSecurityPolicy.PreconfiguredExpressionIds = make([]string, 0, len(rawIds))
-			for _, id := range rawIds {
-				if idStr, ok := id.(string); ok {
-					row.PreviewSecurityPolicy.PreconfiguredExpressionIds = append(row.PreviewSecurityPolicy.PreconfiguredExpressionIds, idStr)
-				}
-			}
+			rule_id := rawIds[0].(string)
+			row.PreviewSecurityPolicy.PreconfiguredExprId = rule_id
 		}
 	}
 
@@ -241,39 +232,48 @@ func mapFromBucketJson(itemBytes []byte) (*RequestsLog, error) {
 
 	if log.JsonPayload.EnforcedSecurityPolicy != nil {
 		ids := []string{}
-		if log.JsonPayload.EnforcedSecurityPolicy.PreconfiguredExpressionIds != nil {
-			ids = log.JsonPayload.EnforcedSecurityPolicy.PreconfiguredExpressionIds
+		if log.JsonPayload.EnforcedSecurityPolicy.PreconfiguredExprIds != nil {
+			ids = log.JsonPayload.EnforcedSecurityPolicy.PreconfiguredExprIds
+		}
+		var exprId string
+		if len(ids) > 0 {
+			exprId = ids[0]
 		}
 		row.EnforcedSecurityPolicy = &RequestLogSecurityPolicy{
-			ConfiguredAction:           log.JsonPayload.EnforcedSecurityPolicy.ConfiguredAction,
-			Name:                       log.JsonPayload.EnforcedSecurityPolicy.Name,
-			Outcome:                    log.JsonPayload.EnforcedSecurityPolicy.Outcome,
-			Priority:                   log.JsonPayload.EnforcedSecurityPolicy.Priority,
-			MatchedFieldType:           log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldType,
-			MatchedFieldValue:          log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldValue,
-			MatchedFieldName:           log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldName,
-			MatchedOffset:              log.JsonPayload.EnforcedSecurityPolicy.MatchedOffset,
-			MatchedLength:              log.JsonPayload.EnforcedSecurityPolicy.MatchedLength,
-			PreconfiguredExpressionIds: ids,
+			ConfiguredAction:    log.JsonPayload.EnforcedSecurityPolicy.ConfiguredAction,
+			Name:                log.JsonPayload.EnforcedSecurityPolicy.Name,
+			Outcome:             log.JsonPayload.EnforcedSecurityPolicy.Outcome,
+			Priority:            log.JsonPayload.EnforcedSecurityPolicy.Priority,
+			MatchedFieldType:    log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldType,
+			MatchedFieldValue:   log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldValue,
+			MatchedFieldName:    log.JsonPayload.EnforcedSecurityPolicy.MatchedFieldName,
+			MatchedOffset:       log.JsonPayload.EnforcedSecurityPolicy.MatchedOffset,
+			MatchedLength:       log.JsonPayload.EnforcedSecurityPolicy.MatchedLength,
+			PreconfiguredExprId: exprId,
 		}
 	}
 
 	if log.JsonPayload.PreviewSecurityPolicy != nil {
 		ids := []string{}
-		if log.JsonPayload.PreviewSecurityPolicy.PreconfiguredExpressionIds != nil {
-			ids = log.JsonPayload.PreviewSecurityPolicy.PreconfiguredExpressionIds
+		if log.JsonPayload.PreviewSecurityPolicy.PreconfiguredExprIds != nil {
+			ids = log.JsonPayload.PreviewSecurityPolicy.PreconfiguredExprIds
+		}
+		// preconfiguredExprIds is always an array of one string, grab the index 0 slice and case this to a string in the row struct
+		var exprId string
+		if len(ids) > 0 {
+			exprId = ids[0]
 		}
 		row.PreviewSecurityPolicy = &RequestLogSecurityPolicy{
-			ConfiguredAction:           log.JsonPayload.PreviewSecurityPolicy.ConfiguredAction,
-			Name:                       log.JsonPayload.PreviewSecurityPolicy.Name,
-			Outcome:                    log.JsonPayload.PreviewSecurityPolicy.Outcome,
-			Priority:                   log.JsonPayload.PreviewSecurityPolicy.Priority,
-			MatchedFieldType:           log.JsonPayload.PreviewSecurityPolicy.MatchedFieldType,
-			MatchedFieldValue:          log.JsonPayload.PreviewSecurityPolicy.MatchedFieldValue,
-			MatchedFieldName:           log.JsonPayload.PreviewSecurityPolicy.MatchedFieldName,
-			MatchedOffset:              log.JsonPayload.PreviewSecurityPolicy.MatchedOffset,
-			MatchedLength:              log.JsonPayload.PreviewSecurityPolicy.MatchedLength,
-			PreconfiguredExpressionIds: ids,
+			ConfiguredAction:    log.JsonPayload.PreviewSecurityPolicy.ConfiguredAction,
+			Name:                log.JsonPayload.PreviewSecurityPolicy.Name,
+			Outcome:             log.JsonPayload.PreviewSecurityPolicy.Outcome,
+			Priority:            log.JsonPayload.PreviewSecurityPolicy.Priority,
+			MatchedFieldType:    log.JsonPayload.PreviewSecurityPolicy.MatchedFieldType,
+			MatchedFieldValue:   log.JsonPayload.PreviewSecurityPolicy.MatchedFieldValue,
+			MatchedFieldName:    log.JsonPayload.PreviewSecurityPolicy.MatchedFieldName,
+			MatchedOffset:       log.JsonPayload.PreviewSecurityPolicy.MatchedOffset,
+			MatchedLength:       log.JsonPayload.PreviewSecurityPolicy.MatchedLength,
+			PreconfiguredExprId: exprId,
 		}
 	}
 
@@ -342,8 +342,8 @@ type jsonPayload struct {
 	CacheDecision              []string                             `json:"cacheDecision"`
 	CacheId                    string                               `json:"cacheId,omitempty"`
 	CompressionStatus          string                               `json:"compressionStatus,omitempty"`
-	EnforcedSecurityPolicy     *requestLogEnforcedSecurityPolicy    `json:"enforcedSecurityPolicy"`
-	PreviewSecurityPolicy      *requestLogPreviewSecurityPolicy     `json:"previewSecurityPolicy,omitempty"`
+	EnforcedSecurityPolicy     *requestLogSecurityPolicy            `json:"enforcedSecurityPolicy"`
+	PreviewSecurityPolicy      *requestLogSecurityPolicy            `json:"previewSecurityPolicy,omitempty"`
 	SecurityPolicyRequestData  *requestLogSecurityPolicyRequestData `json:"securityPolicyRequestData"`
 	RemoteIp                   string                               `json:"remoteIp"`
 	StatusDetails              string                               `json:"statusDetails"`
@@ -366,38 +366,38 @@ type httpRequest struct {
 	CacheFillBytes                 string `json:"cacheFillBytes,omitempty"`
 }
 
-type requestLogEnforcedSecurityPolicy struct {
-	ConfiguredAction           string                        `json:"configuredAction"`
-	Name                       string                        `json:"name"`
-	Outcome                    string                        `json:"outcome"`
-	Priority                   int                           `json:"priority"`
-	PreconfiguredExpressionIds []string                      `json:"preconfiguredExpressionIds,omitempty"`
-	RateLimitAction            *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
-	ThreatIntelligence         *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
-	AddressGroup               *requestLogAddressGroup       `json:"addressGroup,omitempty"`
-	MatchedFieldType           string                        `json:"matchedFieldType,omitempty"`
-	MatchedFieldValue          string                        `json:"matchedFieldValue,omitempty"`
-	MatchedFieldName           string                        `json:"matchedFieldName,omitempty"`
-	MatchedOffset              int                           `json:"matchedOffset,omitempty"`
-	MatchedLength              int                           `json:"matchedLength,omitempty"`
+type requestLogSecurityPolicy struct {
+	ConfiguredAction     string                        `json:"configuredAction"`
+	Name                 string                        `json:"name"`
+	Outcome              string                        `json:"outcome"`
+	Priority             int                           `json:"priority"`
+	PreconfiguredExprIds []string                      `json:"preconfiguredExprIds,omitempty"`
+	RateLimitAction      *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
+	ThreatIntelligence   *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
+	AddressGroup         *requestLogAddressGroup       `json:"addressGroup,omitempty"`
+	MatchedFieldType     string                        `json:"matchedFieldType,omitempty"`
+	MatchedFieldValue    string                        `json:"matchedFieldValue,omitempty"`
+	MatchedFieldName     string                        `json:"matchedFieldName,omitempty"`
+	MatchedOffset        int                           `json:"matchedOffset,omitempty"`
+	MatchedLength        int                           `json:"matchedLength,omitempty"`
 }
 
-type requestLogPreviewSecurityPolicy struct {
-	ConfiguredAction           string                        `json:"configuredAction"`
-	Name                       string                        `json:"name"`
-	Outcome                    string                        `json:"outcome"`
-	Priority                   int                           `json:"priority"`
-	PreconfiguredExpressionIds []string                      `json:"preconfiguredExpressionIds,omitempty"`
-	RateLimitAction            *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
-	ThreatIntelligence         *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
-	AddressGroup               *requestLogAddressGroup       `json:"addressGroup,omitempty"`
-	MatchedFieldType           string                        `json:"matchedFieldType,omitempty"`
-	MatchedFieldValue          string                        `json:"matchedFieldValue,omitempty"`
-	MatchedFieldName           string                        `json:"matchedFieldName,omitempty"`
-	MatchedFieldLength         int                           `json:"matchedFieldLength,omitempty"`
-	MatchedOffset              int                           `json:"matchedOffset,omitempty"`
-	MatchedLength              int                           `json:"matchedLength,omitempty"`
-}
+// type requestLogSecurityPolicy struct {
+// 	ConfiguredAction     string                        `json:"configuredAction"`
+// 	Name                 string                        `json:"name"`
+// 	Outcome              string                        `json:"outcome"`
+// 	Priority             int                           `json:"priority"`
+// 	PreconfiguredExprIds []string                      `json:"preconfiguredExprIds,omitempty"`
+// 	RateLimitAction      *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
+// 	ThreatIntelligence   *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
+// 	AddressGroup         *requestLogAddressGroup       `json:"addressGroup,omitempty"`
+// 	MatchedFieldType     string                        `json:"matchedFieldType,omitempty"`
+// 	MatchedFieldValue    string                        `json:"matchedFieldValue,omitempty"`
+// 	MatchedFieldName     string                        `json:"matchedFieldName,omitempty"`
+// 	MatchedFieldLength   int                           `json:"matchedFieldLength,omitempty"`
+// 	MatchedOffset        int                           `json:"matchedOffset,omitempty"`
+// 	MatchedLength        int                           `json:"matchedLength,omitempty"`
+// }
 
 type requestLogSecurityPolicyRequestData struct {
 	RemoteIpInfo          *requestLogRemoteIpInfo   `json:"remoteIpInfo"`

@@ -65,19 +65,19 @@ type RequestLogHttpRequest struct {
 }
 
 type RequestLogSecurityPolicy struct {
-	ConfiguredAction           string                        `json:"configured_action,omitempty"`
-	RateLimitAction            *RequestLogRateLimitAction    `json:"rate_limit_action,omitempty"`
-	Name                       string                        `json:"name,omitempty"`
-	Outcome                    string                        `json:"outcome,omitempty"`
-	Priority                   int                           `json:"priority,omitempty"`
-	PreconfiguredExpressionIds []string                      `json:"preconfigured_expression_ids,omitempty"`
-	ThreatIntelligence         *RequestLogThreatIntelligence `json:"threat_intelligence,omitempty"`
-	AddressGroup               *RequestLogAddressGroup       `json:"address_group,omitempty"`
-	MatchedFieldType           string                        `json:"matched_field_type,omitempty"`
-	MatchedFieldValue          string                        `json:"matched_field_value,omitempty"`
-	MatchedFieldName           string                        `json:"matched_field_name,omitempty"`
-	MatchedOffset              int                           `json:"matched_offset,omitempty"`
-	MatchedLength              int                           `json:"matched_length,omitempty"`
+	ConfiguredAction    string                        `json:"configured_action,omitempty"`
+	RateLimitAction     *RequestLogRateLimitAction    `json:"rate_limit_action,omitempty"`
+	Name                string                        `json:"name,omitempty"`
+	Outcome             string                        `json:"outcome,omitempty"`
+	Priority            int                           `json:"priority,omitempty"`
+	PreconfiguredExprId string                        `json:"preconfigured_expr_id,omitempty"`
+	ThreatIntelligence  *RequestLogThreatIntelligence `json:"threat_intelligence,omitempty"`
+	AddressGroup        *RequestLogAddressGroup       `json:"address_group,omitempty"`
+	MatchedFieldType    string                        `json:"matched_field_type,omitempty"`
+	MatchedFieldValue   string                        `json:"matched_field_value,omitempty"`
+	MatchedFieldName    string                        `json:"matched_field_name,omitempty"`
+	MatchedOffset       int                           `json:"matched_offset,omitempty"`
+	MatchedLength       int                           `json:"matched_length,omitempty"`
 }
 
 type RequestLogRateLimitAction struct {
