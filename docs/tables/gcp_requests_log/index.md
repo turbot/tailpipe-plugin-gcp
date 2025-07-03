@@ -59,11 +59,11 @@ tailpipe collect gcp_requests_log.my_logs
 
 ### Blocked Requests
 
-Count how many requests were blocked by Cloud Armor
+Count how many requests were blocked by Cloud Armor across all policies
 
 ```sql
-> SELECT
-  enforced_security_policy ->> 'name' AS policy_name,
+SELECT
+  enforced_security_policy.name AS policy_name,
   count(*) AS total_blocked_requests
 FROM
   gcp_requests_log
@@ -77,61 +77,40 @@ ORDER BY
 
 ### Top 10 events
 
-List the 10 most frequently called events.
+List the 10 most blocked OWASP Core Rule Set rules
 
 ```sql
-select
-  service_name,
-  method_name,
-  count(*) as event_count
-from
-  gcp_audit_log
-group by
-  service_name,
-  method_name
-order by
-  event_count desc
-limit 10;
+SELECT
+  enforced_security_policy ->> 'preconfigured_expr_id' AS rule_id,
+  COUNT(*) AS total_occurrences
+FROM
+  gcp_requests_log
+WHERE
+  enforced_security_policy ->> 'outcome' = 'DENY'
+  AND LENGTH(enforced_security_policy ->> 'preconfigured_expr_id') > 0
+GROUP BY
+  rule_id
+ORDER BY
+  total_occurrences DESC
+LIMIT 10
 ```
 
-### High Volume IAM Access Token Generation
-
-Find users generating a high volume of IAM access tokens within a short period, which may indicate potential privilege escalation or compromised credentials.
-
-```sql
-select
-  authentication_info ->> 'principal_email' as user_email,
-  count(*) as event_count,
-  date_trunc('minute', timestamp) as event_minute
-from
-  gcp_audit_log
-where
-  service_name = 'iamcredentials.googleapis.com'
-  and method_name ilike 'generateaccesstoken'
-group by
-  user_email,
-  event_minute
-having
-  count(*) > 10
-order by
-  event_count desc;
-```
 
 ## Example Configurations
 
 ### Collect logs from a Storage bucket
 
-Collect audit logs stored in a Storage bucket that use the [default log file name format](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_audit_log#gcp_storage_bucket).
+Collect request logs stored in a Storage bucket that use the [default log file name format](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_audit_log#gcp_storage_bucket).
 
 ```hcl
 connection "gcp" "logging_account" {
   project = "my-gcp-project"
 }
 
-partition "gcp_audit_log" "my_logs" {
+partition "gcp_requests_log" "my_logs" {
   source "gcp_storage_bucket" {
     connection = connection.gcp.logging_account
-    bucket     = "gcp-audit-logs-bucket"
+    bucket     = "gcp-cloudarmor-logs-bucket"
   }
 }
 ```
@@ -141,10 +120,10 @@ partition "gcp_audit_log" "my_logs" {
 Collect audit logs stored with a GCS key prefix.
 
 ```hcl
-partition "gcp_audit_log" "my_logs_prefix" {
+partition "gcp_requests_log" "my_logs_prefix" {
   source "gcp_storage_bucket" {
     connection = connection.gcp.logging_account
-    bucket     = "gcp-audit-logs-bucket"
+    bucket     = "gcp-cloudarmor-logs-bucket"
     prefix     = "my/prefix/"
   }
 }
@@ -155,57 +134,43 @@ partition "gcp_audit_log" "my_logs_prefix" {
 Collect audit logs for a specific project.
 
 ```hcl
-partition "gcp_audit_log" "my_logs_prefix" {
-  filter = "log_name like 'projects/my-project-name/logs/cloudaudit.googleapis.com/%'"
+partition "gcp_requests_log" "my_logs_prefix" {
+  filter = "log_name like 'projects/my-project-name/logs/requests/%'"
 
   source "gcp_storage_bucket" {
     connection = connection.gcp.logging_account
-    bucket     = "gcp-audit-logs-bucket"
+    bucket     = "gcp-cloudarmor-logs-bucket"
   }
 }
 ```
 
-### Collect logs from audit logs API
+### Collect logs from Cloud Logging API
 
-Collect audit logs stored in a Storage bucket that use the [default log file name format](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_audit_log#gcp_storage_bucket).
+Collect request logs directly via the Cloud Logging API.  *Note that rate limiting is currently not implemented and this could impact ability to collect a large number of logs*
 
 ```hcl
 connection "gcp" "my_project" {
   project = "my-gcp-project"
 }
 
-partition "gcp_audit_log" "my_logs" {
-  source "gcp_audit_log_api" {
+partition "gcp_requests_log" "my_logs" {
+  source "gcp_cloud_logging_api" {
     connection = connection.gcp.my_project
   }
 }
 ```
 
-### Collect specific types of audit logs from audit logs API
+### Collect other types of logs from Cloud Logging API
 
-Collect admin activity and data access audit logs for a project.
+The Cloud Logging API source can be expanded upon to retrieve logs other than requests, if the appropriate table is created to enrich and save them.  The log name attribute is the filter used for this, and it assumes that a table / partition have been made that match the data type.
+
+Example: Collecting GCP Dataflow logs
 
 ```hcl
-partition "gcp_audit_log" "my_logs_admin_data_access" {
-  source "gcp_audit_log_api" {
+partition "gcp_dataflow_log" "my_logs_prefix" {
+  filter = "log_name like 'projects/my-project-name/logs/dataflow.googleapis.com%'"
+  source "gcp_cloud_logging_api" {
     connection = connection.gcp.my_project
-    log_types = ["activity", "data_access"]
-  }
-}
-```
-
-### Exclude INFO level events
-
-Use the filter argument in your partition to exclude INFO severity level events and reduce log storage size.
-
-```hcl
-partition "gcp_audit_log" "my_logs_severity" {
-  # Avoid saving specific severity levels
-  filter = "severity != 'INFO'"
-
-  source "gcp-storage_bucket" {
-    connection = connection.gcp.logging_account
-    bucket     = "gcp-audit-logs-bucket"
   }
 }
 ```
@@ -218,4 +183,4 @@ This table sets the following defaults for the [gcp_storage_bucket](https://hub.
 
 | Argument      | Default |
 |--------------|---------|
-| file_layout   | `cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json` |
+| file_layout   | `requests/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json` |
