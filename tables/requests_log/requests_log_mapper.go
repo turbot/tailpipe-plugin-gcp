@@ -30,7 +30,7 @@ func (m *RequestsLogMapper) Map(_ context.Context, a any, _ ...mappers.MapOption
 	case *loggingpb.LogEntry:
 		return mapFromSDKType(v)
 	case *logging.Entry:
-		return nil, fmt.Errorf("Logging.Entry did not convert to *loggingpb.LogEntry: %T", a)
+		return nil, fmt.Errorf("logging.Entry did not convert to *loggingpb.LogEntry: %T", a)
 	case []byte:
 		return mapFromBucketJson(v)
 	default:
@@ -105,9 +105,10 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 			policy.Priority = int(val)
 		}
 
-		if rawIds, ok := securityPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok {
-			rule_id := rawIds[0].(string)
-			policy.PreconfiguredExprId = rule_id
+		if rawIds, ok := securityPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok && len(rawIds) > 0 {
+			if ruleId, ok := rawIds[0].(string); ok {
+				policy.PreconfiguredExprId = ruleId
+			}
 		}
 		row.EnforcedSecurityPolicy = policy
 	}
@@ -132,8 +133,9 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*RequestsLog, error) {
 
 		// Handle PreconfiguredExpressionIds within PreviewSecurityPolicy only if it exists and has values.
 		if rawIds, ok := previewPolicyMap["preconfiguredExpressionIds"].([]interface{}); ok && len(rawIds) > 0 {
-			rule_id := rawIds[0].(string)
-			row.PreviewSecurityPolicy.PreconfiguredExprId = rule_id
+			if ruleId, ok := rawIds[0].(string); ok {
+				row.PreviewSecurityPolicy.PreconfiguredExprId = ruleId
+			}
 		}
 	}
 
@@ -382,22 +384,7 @@ type requestLogSecurityPolicy struct {
 	MatchedLength        int                           `json:"matchedLength,omitempty"`
 }
 
-// type requestLogSecurityPolicy struct {
-// 	ConfiguredAction     string                        `json:"configuredAction"`
-// 	Name                 string                        `json:"name"`
-// 	Outcome              string                        `json:"outcome"`
-// 	Priority             int                           `json:"priority"`
-// 	PreconfiguredExprIds []string                      `json:"preconfiguredExprIds,omitempty"`
-// 	RateLimitAction      *requestLogRateLimitAction    `json:"rateLimitAction,omitempty"`
-// 	ThreatIntelligence   *requestLogThreatIntelligence `json:"threatIntelligence,omitempty"`
-// 	AddressGroup         *requestLogAddressGroup       `json:"addressGroup,omitempty"`
-// 	MatchedFieldType     string                        `json:"matchedFieldType,omitempty"`
-// 	MatchedFieldValue    string                        `json:"matchedFieldValue,omitempty"`
-// 	MatchedFieldName     string                        `json:"matchedFieldName,omitempty"`
-// 	MatchedFieldLength   int                           `json:"matchedFieldLength,omitempty"`
-// 	MatchedOffset        int                           `json:"matchedOffset,omitempty"`
-// 	MatchedLength        int                           `json:"matchedLength,omitempty"`
-// }
+// (No replacement lines; the block is removed entirely.)
 
 type requestLogSecurityPolicyRequestData struct {
 	RemoteIpInfo          *requestLogRemoteIpInfo   `json:"remoteIpInfo"`

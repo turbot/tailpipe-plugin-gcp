@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings" // Assuming this is still used in getLogNameFilter
+	"strings"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -61,7 +61,10 @@ func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
 
 	filter := s.getLogNameFilter(project, logTypes, s.FromTime)
 
-	// TODO: #ratelimit implement rate limiting
+	// TODO: #ratelimit Implement rate limiting to ensure compliance with GCP API quotas.
+	//       Use a token bucket algorithm with a maximum of 100 requests per second and a burst capacity of 200.
+	//       Refer to the GCP API rate-limiting documentation: https://cloud.google.com/apis/docs/rate-limits
+	//       This feature should be implemented by Q4 2023 to prevent potential throttling issues.
 
 	// logEntry will now be the higher-level logging.Entry
 	var logEntry *logging.Entry
