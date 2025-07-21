@@ -11,6 +11,8 @@ Using this source, you can collect, filter, and analyze logs stored in GCP Stora
 
 Most GCP tables define a default `file_path` for the `gcp_storage_bucket` source, so if your GCP logs are stored in default log locations, you don't need to override the `file_path` argument.
 
+The trailing `/` is not automatically included in the `prefix`. If your log path requires it, be sure to add it explicitly.
+
 ## Example Configurations
 
 ### Collect audit logs
@@ -55,6 +57,21 @@ partition "gcp_audit_log" "my_logs_prefix" {
   source "gcp_storage_bucket" {
     connection = connection.gcp.logging_account
     bucket     = "gcp-audit-logs-bucket"
+  }
+}
+```
+
+### Collect audit logs for a specific date from flat file layout in GCS
+
+Collect logs from a GCS bucket where files are stored using a flat object layout, and filter by prefix to only retrieve logs for a specific day.
+
+```hcl
+partition "gcp_audit_log" "my_logs" {
+  source "gcp_storage_bucket" {
+    connection  = connection.gcp.logging_account
+    bucket      = "gcp-audit-logs-bucket"
+    prefix      = "2025-06-07"
+    file_layout = `%{DATA:file_name}.json`
   }
 }
 ```

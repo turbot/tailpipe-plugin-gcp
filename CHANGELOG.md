@@ -1,3 +1,15 @@
+## v0.5.1 [2025-07-02]
+
+_Dependencies_
+
+- Recompiled plugin with [tailpipe-plugin-sdk v0.9.1](https://github.com/turbot/tailpipe-plugin-sdk/blob/develop/CHANGELOG.md#v091-2025-07-02) that fixes collection state issues. ([#72](https://github.com/turbot/tailpipe-plugin-gcp/pull/72))
+
+## v0.5.0 [2025-07-02]
+
+_Dependencies_
+
+- Recompiled plugin with [tailpipe-plugin-sdk v0.9.0](https://github.com/turbot/tailpipe-plugin-sdk/blob/develop/CHANGELOG.md#v090-2025-07-02) to support the `--to` flag and update tracking of collected data to support multiple separate time ranges. ([#66](https://github.com/turbot/tailpipe-plugin-gcp/pull/66))
+
 ## v0.4.2 [2025-06-05]
 
 - Recompiled plugin with [tailpipe-plugin-sdk v0.7.2](https://github.com/turbot/tailpipe-plugin-sdk/blob/develop/CHANGELOG.md#v072-2025-06-04) that fixes an issue where the end time was not correctly recorded for collections using artifact sources. ([#57](https://github.com/turbot/tailpipe-plugin-gcp/pull/57))
