@@ -59,7 +59,7 @@ func (s *CloudLoggingAPISource) Collect(ctx context.Context) error {
 		},
 	}
 
-	filter := s.getLogNameFilter(project, logTypes, s.FromTime)
+	filter := s.getLogNameFilter(project, logTypes, s.CollectionTimeRange)
 
 	// TODO: #ratelimit Implement rate limiting to ensure compliance with GCP API quotas.
 	//       Use a token bucket algorithm with a maximum of 100 requests per second and a burst capacity of 200.
@@ -122,9 +122,11 @@ func (s *CloudLoggingAPISource) getClient(ctx context.Context, project string) (
 	return client, nil
 }
 
-func (s *CloudLoggingAPISource) getLogNameFilter(projectId string, logTypes []string, startTime time.Time) string {
+func (s *CloudLoggingAPISource) getLogNameFilter(projectId string, logTypes []string, timeRange collection_state.DirectionalTimeRange) string {
 	requestsLog := fmt.Sprintf(`"projects/%s/logs/requests"`, projectId)
-	timePart := fmt.Sprintf(`AND (timestamp > "%s")`, startTime.Format(time.RFC3339Nano))
+	timePart := fmt.Sprintf(`AND (timestamp >= "%s") AND (timestamp < "%s")`,
+		timeRange.StartTime().Format(time.RFC3339Nano),
+		timeRange.EndTime().Format(time.RFC3339Nano))
 
 	// short-circuit default
 	if len(logTypes) == 0 {

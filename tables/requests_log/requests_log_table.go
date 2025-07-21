@@ -63,7 +63,6 @@ func (c *RequestsLogTable) EnrichRow(row *RequestsLog, sourceEnrichmentFields sc
 	row.TpID = xid.New().String()
 	row.TpTimestamp = row.Timestamp
 	row.TpIngestTimestamp = time.Now()
-	row.TpIndex = schema.DefaultIndex
 	row.TpDate = row.Timestamp.Truncate(24 * time.Hour)
 
 	// Ensure TpIps is always initialized (even if empty)
