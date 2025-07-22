@@ -1,6 +1,10 @@
 package billing_report
 
 import (
+	"github.com/turbot/pipe-fittings/v2/utils"
+	"github.com/turbot/tailpipe-plugin-gcp/sources/storage_bucket"
+	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
+	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
 	"github.com/turbot/tailpipe-plugin-sdk/constants"
 	"github.com/turbot/tailpipe-plugin-sdk/formats"
 	"github.com/turbot/tailpipe-plugin-sdk/row_source"
@@ -20,7 +24,18 @@ func (t *BillingReportTable) Identifier() string {
 }
 
 func (t *BillingReportTable) GetSourceMetadata() ([]*table.SourceMetadata[*types.DynamicRow], error) {
+	defaultStorageBucketArtifactConfig := &artifact_source_config.ArtifactSourceConfigImpl{
+		FileLayout: utils.ToStringPointer("gcp-billing-export/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{DATA:export_id}.json.gz"),
+	}
+
 	return []*table.SourceMetadata[*types.DynamicRow]{
+		{
+			SourceName: storage_bucket.GcpStorageBucketSourceIdentifier,
+			Options: []row_source.RowSourceOption{
+				artifact_source.WithDefaultArtifactSourceConfig(defaultStorageBucketArtifactConfig),
+				artifact_source.WithRowPerLine(),
+			},
+		},
 		{
 			SourceName: constants.ArtifactSourceIdentifier,
 			Options:    []row_source.RowSourceOption{},
@@ -214,5 +229,10 @@ func (t *BillingReportTable) GetTableDefinition() *schema.TableSchema {
 				},
 			},
 		},
+		Description: t.GetDescription(),
 	}
+}
+
+func (t *BillingReportTable) GetDescription() string {
+	return "GCP Billing Reports provide detailed cost and usage information for Google Cloud Platform resources. This table includes billing data such as costs, credits, usage metrics, and resource details, helping teams monitor spending, analyze cost trends, and optimize cloud resource usage across projects and services."
 }
