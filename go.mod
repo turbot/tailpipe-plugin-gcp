@@ -4,8 +4,6 @@ go 1.24
 
 toolchain go1.24.1
 
-replace github.com/turbot/tailpipe-plugin-sdk => ../tailpipe-plugin-sdk
-
 require (
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/storage v1.54.0
