@@ -24,8 +24,10 @@ func (t *BillingReportTable) Identifier() string {
 }
 
 func (t *BillingReportTable) GetSourceMetadata() ([]*table.SourceMetadata[*types.DynamicRow], error) {
+	// Cloud Billing export to Cloud Storage does not include a default directory prefix inside your bucket. The files are saved directly at the root level.
+	// https://groups.google.com/g/gce-discussion/c/4G_pLvcLSAA
 	defaultStorageBucketArtifactConfig := &artifact_source_config.ArtifactSourceConfigImpl{
-		FileLayout: utils.ToStringPointer("gcp-billing-export/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{DATA:export_id}.json.gz"),
+		FileLayout: utils.ToStringPointer("%{DATA:file_name}.json.gz"),
 	}
 
 	return []*table.SourceMetadata[*types.DynamicRow]{

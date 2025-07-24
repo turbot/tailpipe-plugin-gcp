@@ -229,6 +229,6 @@ partition "gcp_billing_report" "monthly_billing" {
 
 This table sets the following defaults for the [gcp_storage_bucket](https://hub.tailpipe.io/plugins/turbot/gcp/sources/gcp_storage_bucket#arguments):
 
-| Argument    | Default                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------- |
-| file_layout | `gcp-billing-export/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{DATA:export_id}.json.gz` |
+| Argument    | Default                     |
+| ----------- | --------------------------- |
+| file_layout | `%{DATA:file_name}.json.gz` |
