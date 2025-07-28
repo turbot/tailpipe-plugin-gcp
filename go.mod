@@ -12,8 +12,8 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rs/xid v1.6.0
 	github.com/turbot/go-kit v1.3.0
-	github.com/turbot/pipe-fittings/v2 v2.5.2
-	github.com/turbot/tailpipe-plugin-sdk v0.9.1
+	github.com/turbot/pipe-fittings/v2 v2.6.0
+	github.com/turbot/tailpipe-plugin-sdk v0.9.2
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.232.0
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb
@@ -89,7 +89,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.11.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
