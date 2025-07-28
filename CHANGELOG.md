@@ -1,3 +1,7 @@
+## v0.5.2 [2025-07-28]
+
+- Recompiled plugin with [tailpipe-plugin-sdk v0.9.2](https://github.com/turbot/tailpipe-plugin-sdk/blob/develop/CHANGELOG.md#v092-2025-07-24) that fixes incorrect data ranges for zero‑granularity collections and prevents crashes in certain collection states. ([#81](https://github.com/turbot/tailpipe-plugin-gcp/pull/81))
+
 ## v0.5.1 [2025-07-02]
 
 _Dependencies_
