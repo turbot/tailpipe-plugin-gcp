@@ -5,7 +5,7 @@ description: "Allows users to collect logs from Google Cloud Platform (GCP) audi
 
 # Source: gcp_audit_log_api - Obtain logs from GCP audit log API
 
-The Google Cloud Platform (GCP) audit log API provides access to audit logs for GCP services. It allows you to view and manage logs for your GCP projects, including logs for administrative actions, data access, and system events.
+The Google Cloud Platform (GCP) audit log API provides access to audit logs for GCP services. It allows you to view and manage logs for your GCP projects, including logs for administrative actions, data access, system events, and request logs.
 
 Using this source, you can collect, filter, and analyze logs retrieved from the GCP audit log API, enabling system monitoring, security investigations, and compliance reporting.
 
@@ -40,9 +40,22 @@ partition "gcp_audit_log" "my_logs_admin_data_access" {
 }
 ```
 
+### Collect request logs
+
+Collect request logs for Cloud Armor and Application Load Balancer analysis.
+
+```hcl
+partition "gcp_requests_log" "my_request_logs" {
+  source "gcp_audit_log_api" {
+    connection = connection.gcp.my_project
+    log_types = ["requests"]
+  }
+}
+```
+
 ## Arguments
 
-| Argument   | Type             | Required | Default                  | Description                                                                                                                   |
-|------------|------------------|----------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| connection | `connection.gcp` | No       | `connection.gcp.default` | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account. |
-| log_types  | List(String)     | No       | []                       | A list of [audit log types](https://cloud.google.com/logging/docs/audit#types) to retrieve. If no types are specified, all log types are retrieved. Valid values: activity, data_access, system_event. |
+| Argument   | Type             | Required | Default                  | Description                                                                                                                                                                                                              |
+| ---------- | ---------------- | -------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| connection | `connection.gcp` | No       | `connection.gcp.default` | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account.                                                                                            |
+| log_types  | List(String)     | No       | []                       | A list of [audit log types](https://cloud.google.com/logging/docs/audit#types) to retrieve. If no types are specified, all log types are retrieved. Valid values: activity, data_access, system_event, policy, requests. |

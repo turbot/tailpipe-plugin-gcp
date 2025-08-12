@@ -117,6 +117,9 @@ func (s *AuditLogAPISource) getLogFilter(projectId string, logTypes []string, ti
 	dataAccess := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%sdata_access"`, projectId, "%2F")
 	systemEvent := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%ssystem_event"`, projectId, "%2F")
 	policyDenied := fmt.Sprintf(`"projects/%s/logs/cloudaudit.googleapis.com%spolicy"`, projectId, "%2F")
+	cloudRunRequest := fmt.Sprintf(`"projects/%s/logs/run.googleapis.com%srequests"`, projectId, "%2F")
+	appEngineRequest := fmt.Sprintf(`"projects/%s/logs/appengine.googleapis.com%request_log"`, projectId, "%2F")
+	requests := fmt.Sprintf(`"projects/%s/logs/requests"`, projectId)
 	// construct filter for time range
 	timePart := fmt.Sprintf(`AND (timestamp >= "%s") AND (timestamp < "%s")`,
 		timeRange.StartTime().Format(time.RFC3339Nano),
@@ -124,7 +127,7 @@ func (s *AuditLogAPISource) getLogFilter(projectId string, logTypes []string, ti
 
 	// short-circuit default
 	if len(logTypes) == 0 {
-		return fmt.Sprintf("logName=(%s OR %s OR %s OR %s) %s", activity, dataAccess, systemEvent, policyDenied, timePart)
+		return fmt.Sprintf("logName=(%s OR %s OR %s OR %s OR %s OR %s OR %s) %s", activity, dataAccess, systemEvent, policyDenied, cloudRunRequest, appEngineRequest, requests, timePart)
 	}
 
 	var selected []string
@@ -138,12 +141,18 @@ func (s *AuditLogAPISource) getLogFilter(projectId string, logTypes []string, ti
 			selected = append(selected, systemEvent)
 		case "policy":
 			selected = append(selected, policyDenied)
+		case "cloud_run_request":
+			selected = append(selected, cloudRunRequest)
+		case "app_engine_request":
+			selected = append(selected, appEngineRequest)
+		case "requests":
+			selected = append(selected, requests)
 		}
 	}
 
 	switch len(selected) {
 	case 0:
-		return fmt.Sprintf("logName=(%s OR %s OR %s or %s) %s", activity, dataAccess, systemEvent, policyDenied, timePart)
+		return fmt.Sprintf("logName=(%s OR %s OR %s or %s OR %s OR %s OR %s) %s", activity, dataAccess, systemEvent, policyDenied, cloudRunRequest, appEngineRequest, requests, timePart)
 	case 1:
 		return fmt.Sprintf("logName=%s %s", selected[0], timePart)
 	default:

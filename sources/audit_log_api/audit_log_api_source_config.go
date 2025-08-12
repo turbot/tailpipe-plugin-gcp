@@ -15,7 +15,7 @@ type AuditLogAPISourceConfig struct {
 }
 
 func (a *AuditLogAPISourceConfig) Validate() error {
-	validLogTypes := []string{"activity", "data_access", "system_event", "policy"}
+	validLogTypes := []string{"activity", "data_access", "system_event", "policy", "cloud_run_request", "app_engine_request", "requests"}
 
 	for _, logType := range a.LogTypes {
 		if !slices.Contains(validLogTypes, logType) {
