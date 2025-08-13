@@ -1,9 +1,9 @@
 ---
-title: "Tailpipe Table: gcp_billing_report - Query GCP billing reports"
+title: "Tailpipe Table: gcp_billing_report - Query GCP Billing Reports"
 description: "GCP billing reports provide detailed cost and usage information for Google Cloud Platform resources, including costs, credits, usage metrics, and resource details."
 ---
 
-# Table: gcp_billing_report - Query GCP billing reports
+# Table: gcp_billing_report - Query GCP Billing Reports
 
 The `gcp_billing_report` table allows you to query data from GCP billing reports. This table provides detailed information about cloud costs, usage patterns, credits, and resource consumption across your Google Cloud environment.
 
