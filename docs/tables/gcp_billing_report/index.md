@@ -23,6 +23,7 @@ connection "gcp" "billing_account" {
 partition "gcp_billing_report" "my_billing" {
   source "gcp_storage_bucket" {
     connection = connection.gcp.billing_account
+    bucket     = "gcp-billing-export-bucket"
   }
 }
 ```
@@ -43,7 +44,7 @@ tailpipe collect gcp_billing_report.my_billing
 
 ## Query
 
-**[Explore 50+ example queries for this table →](https://hub.tailpipe.io/plugins/turbot/gcp/queries/gcp_billing_report)**
+**[Explore 10+ example queries for this table →](https://hub.tailpipe.io/plugins/turbot/gcp/queries/gcp_billing_report)**
 
 ### Daily costs
 

@@ -21,7 +21,7 @@ order by
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ### Top 10 Costly Services
@@ -46,7 +46,7 @@ limit 10;
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ### Top 10 Spending Projects
@@ -71,7 +71,7 @@ limit 10;
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ## Detection Examples
@@ -113,7 +113,7 @@ order by
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ### Top 10 Projects by Network Egress Usage
@@ -142,7 +142,7 @@ limit 10;
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ## Operational Examples
@@ -174,7 +174,7 @@ order by
 ```
 
 ```yaml
-folder: Compute Engine
+folder: Compute
 ```
 
 ### Top 10 Storage Costs by SKU
@@ -195,8 +195,8 @@ from
 where
   usage_start_time >= current_date - interval '30 days'
   and (service_description ilike '%storage%'
-       or service_description ilike '%filestore%'
-       or service_description ilike '%disk%')
+    or service_description ilike '%filestore%'
+    or service_description ilike '%disk%')
 group by
   project_id,
   service_description,
@@ -248,7 +248,7 @@ from
 ```
 
 ```yaml
-folder: Compute Engine
+folder: Compute
 ```
 
 ### Top 10 High-Volume Service Usage
@@ -277,7 +277,7 @@ limit 10;
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ## Baseline Examples
@@ -304,7 +304,7 @@ order by
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ### Services with Unexpected Costs
@@ -348,7 +348,7 @@ order by
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
 
 ### Cost Comparison Across Billing Periods
@@ -392,7 +392,6 @@ previous_period as (
     service_description,
     currency
 )
-
 select
   current_period.service,
   current_period.cost as current_cost,
@@ -416,5 +415,5 @@ order by
 ```
 
 ```yaml
-folder: Billing Report
+folder: Billing
 ```
