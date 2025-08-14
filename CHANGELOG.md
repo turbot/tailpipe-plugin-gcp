@@ -1,3 +1,10 @@
+## v0.6.0 [2025-08-14]
+
+_What's new?_
+
+- New tables added: ([#80](https://github.com/turbot/tailpipe-plugin-gcp/pull/80))
+  - [gcp_billing_report](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_billing_report)
+
 ## v0.5.2 [2025-07-28]
 
 _Dependencies_
