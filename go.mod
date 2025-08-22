@@ -8,6 +8,7 @@ require (
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/storage v1.54.0
 	github.com/elastic/go-grok v0.3.1
+	github.com/googleapis/gax-go/v2 v2.14.1
 	github.com/hashicorp/hcl/v2 v2.20.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rs/xid v1.6.0
@@ -17,6 +18,7 @@ require (
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.232.0
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb
+	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -98,7 +100,6 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
-	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -210,7 +211,6 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250505200425-f936aa4a68b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2 // indirect
-	google.golang.org/grpc v1.72.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	oras.land/oras-go/v2 v2.5.0 // indirect

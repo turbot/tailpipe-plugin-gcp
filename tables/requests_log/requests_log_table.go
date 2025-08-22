@@ -6,7 +6,7 @@ import (
 	"github.com/rs/xid"
 
 	"github.com/turbot/pipe-fittings/v2/utils"
-	"github.com/turbot/tailpipe-plugin-gcp/sources/audit_log_api"
+	logging_log_entry "github.com/turbot/tailpipe-plugin-gcp/sources/logging_log_entry"
 	"github.com/turbot/tailpipe-plugin-gcp/sources/storage_bucket"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
@@ -32,8 +32,11 @@ func (c *RequestsLogTable) GetSourceMetadata() ([]*table.SourceMetadata[*Request
 
 	return []*table.SourceMetadata[*RequestsLog]{
 		{
-			SourceName: audit_log_api.AuditLogAPISourceIdentifier,
+			SourceName: logging_log_entry.LoggingLogEntrySourceIdentifier,
 			Mapper:     &RequestsLogMapper{},
+			Options: []row_source.RowSourceOption{
+				logging_log_entry.WithTableName(RequestsLogTableIdentifier),
+			},
 		},
 		{
 			SourceName: storage_bucket.GcpStorageBucketSourceIdentifier,
