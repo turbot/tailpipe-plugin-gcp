@@ -3,7 +3,7 @@ package gcp
 import (
 	"github.com/turbot/go-kit/helpers"
 	"github.com/turbot/tailpipe-plugin-gcp/config"
-	"github.com/turbot/tailpipe-plugin-gcp/sources/audit_log_api"
+	logging_log_entry "github.com/turbot/tailpipe-plugin-gcp/sources/logging_log_entry"
 	"github.com/turbot/tailpipe-plugin-gcp/sources/storage_bucket"
 	"github.com/turbot/tailpipe-plugin-gcp/tables/audit_log"
 	"github.com/turbot/tailpipe-plugin-gcp/tables/billing_report"
@@ -24,7 +24,7 @@ func init() {
 	table.RegisterCustomTable[*billing_report.BillingReportTable]()
 
 	// register sources
-	row_source.RegisterRowSource[*audit_log_api.AuditLogAPISource]()
+	row_source.RegisterRowSource[*logging_log_entry.LoggingLogEntrySource]()
 	row_source.RegisterRowSource[*storage_bucket.GcpStorageBucketSource]()
 }
 
