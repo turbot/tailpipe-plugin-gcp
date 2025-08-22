@@ -105,8 +105,12 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*AuditLog, error) {
 	// Fall back to JsonPayload (logadmin client)
 	if payload == nil {
 		if jsonPayload := item.GetJsonPayload(); jsonPayload != nil {
-			if protoPayloadMap, ok := jsonPayload.AsMap()["protoPayload"].(*audit.AuditLog); ok {
-				payload = protoPayloadMap
+			if m := jsonPayload.AsMap(); m != nil {
+				if v, exists := m["protoPayload"]; exists {
+					if protoPayloadMap, ok := v.(*audit.AuditLog); ok {
+						payload = protoPayloadMap
+					}
+				}
 			}
 		}
 	}
@@ -248,7 +252,7 @@ func mapFromSDKType(item *loggingpb.LogEntry) (*AuditLog, error) {
 		row.HttpRequest = &AuditLogHttpRequest{
 			Method:                         httpReq.GetRequestMethod(),
 			Url:                            httpReq.GetRequestUrl(),
-			RequestHeaders:                 nil, // Not available in protobuf HttpRequest
+			RequestHeaders:                 nil, // Not available: google.cloud.audit.HttpRequest does not include request headers. There is currently no alternative way to obtain this information from the audit log entry.
 			RequestSize:                    httpReq.GetRequestSize(),
 			Status:                         int(httpReq.GetStatus()),
 			ResponseSize:                   httpReq.GetResponseSize(),

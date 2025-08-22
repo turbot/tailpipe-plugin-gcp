@@ -22,7 +22,10 @@ import (
 	"github.com/turbot/tailpipe-plugin-sdk/types"
 )
 
-const LoggingLogEntrySourceIdentifier = "gcp_logging_log_entry"
+const (
+	LoggingLogEntrySourceIdentifier = "gcp_logging_log_entry"
+	DefaultLogEntriesPageSize       = 5000
+)
 
 // WithTableName is a custom option to pass the table name to the source
 func WithTableName(tableName string) row_source.RowSourceOption {
@@ -100,7 +103,7 @@ func (s *LoggingLogEntrySource) Collect(ctx context.Context) error {
 	req := &loggingpb.ListLogEntriesRequest{
 		ResourceNames: []string{fmt.Sprintf("projects/%s", project)},
 		Filter:        filter,
-		PageSize:      5000,
+		PageSize:      DefaultLogEntriesPageSize,
 	}
 
 	it := client.ListLogEntries(ctx, req)
