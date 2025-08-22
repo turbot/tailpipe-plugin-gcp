@@ -31,9 +31,6 @@ type LogTypeFilter struct {
 func NewLogTypeFilter() *LogTypeFilter {
 	return &LogTypeFilter{
 		TableLogTypeMap: map[string]map[string][]string{
-			"gcp_requests_log": {
-				"requests": []string{"projects/%s/logs/requests"},
-			},
 			"gcp_audit_log": {
 				"activity":     []string{"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity"},
 				"data_access":  []string{"projects/%s/logs/cloudaudit.googleapis.com%%2Fdata_access"},

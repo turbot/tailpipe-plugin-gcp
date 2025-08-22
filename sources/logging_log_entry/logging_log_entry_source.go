@@ -34,7 +34,7 @@ func WithTableName(tableName string) row_source.RowSourceOption {
 	}
 }
 
-// LoggingLogEntrySource source is responsible for collecting audit logs from GCP
+// LoggingLogEntrySource source is responsible for collecting logs from GCP using Audit log log entries API.
 type LoggingLogEntrySource struct {
 	row_source.RowSourceImpl[*LoggingLogEntrySourceConfig, *config.GcpConnection]
 	tableName     string
@@ -155,6 +155,7 @@ func (s *LoggingLogEntrySource) getClient(ctx context.Context, project string) (
 	}
 
 	// Configure retry mechanism for ListLogEntries with configurable parameters
+	// Retry mechanism has been implemented as suggested by GCP: https://cloud.google.com/storage/docs/retry-strategy#customize-retries
 	client.CallOptions.ListLogEntries = []gax.CallOption{
 		gax.WithRetry(func() gax.Retryer {
 			return gax.OnCodes(
