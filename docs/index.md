@@ -117,13 +117,16 @@ To get started, choose a mod from the [Powerpipe Hub](https://hub.powerpipe.io/?
 
 ### Arguments
 
-| Name                          | Type   | Required | Description                                                                                          |
-|-------------------------------|--------|----------|------------------------------------------------------------------------------------------------------|
-| `credentials`                 | String | No       | Path to the JSON credentials file or the contents of a service account key file in JSON format.     |
-| `impersonate_access_token`    | String | No       | An OAuth 2.0 access token used to impersonate a service account.                                    |
-| `impersonate_service_account` | String | No       | The email of the service account to impersonate for authentication.                                |
-| `project`                     | String | No       | The project ID to connect to.                                                                      |
-| `quota_project`               | String | No       | The project ID to use for quota usage and billing purposes.                                        |
+| Name                          | Type   | Required | Description                                                                                     |
+| ----------------------------- | ------ | -------- | ----------------------------------------------------------------------------------------------- |
+| `credentials`                 | String | No       | Path to the JSON credentials file or the contents of a service account key file in JSON format. |
+| `impersonate_access_token`    | String | No       | An OAuth 2.0 access token used to impersonate a service account.                                |
+| `impersonate_service_account` | String | No       | The email of the service account to impersonate for authentication.                             |
+| `project`                     | String | No       | The project ID to connect to.                                                                   |
+| `quota_project`               | String | No       | The project ID to use for quota usage and billing purposes.                                     |
+| `min_retry_delay`             | Int    | No       | Initial retry delay in milliseconds for API rate limiting (default: 500ms).                     |
+| `max_retry_delay`             | Int    | No       | Maximum retry delay in milliseconds for API rate limiting (default: 60000ms).                   |
+| `backoff_multiplier`          | Float  | No       | Exponential growth multiplier for retry delays (default: 1.30).                                 |
 
 ### Application Default Credentials
 

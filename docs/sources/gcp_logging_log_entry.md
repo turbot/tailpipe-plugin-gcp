@@ -69,27 +69,6 @@ partition "gcp_audit_log" "my_activity_logs" {
 }
 ```
 
-### Connection-level Rate Limiting Configuration
-
-You can configure retry behavior and timeouts at the connection level.
-
-```hcl
-connection "gcp" "my_project" {
-  project = "my-gcp-project"
-
-  # Retry configuration for handling rate limits
-  min_retry_delay     = 1000    # Initial retry delay in milliseconds (default: 500ms)
-  max_retry_delay     = 30000   # Maximum retry delay in milliseconds (default: 60000ms)
-  backoff_multiplier  = 1.5     # Exponential growth multiplier (default: 1.30)
-}
-
-partition "gcp_audit_log" "my_logs" {
-  source "gcp_logging_log_entry" {
-    connection = connection.gcp.my_project
-  }
-}
-```
-
 ## Arguments
 
 | Argument   | Type             | Required | Default                  | Description                                                                                                                                                       |
