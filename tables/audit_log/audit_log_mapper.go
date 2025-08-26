@@ -11,6 +11,7 @@ import (
 
 	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"google.golang.org/genproto/googleapis/cloud/audit"
+	bigquerylogging "google.golang.org/genproto/googleapis/cloud/bigquery/logging/v1"
 	adminpb "google.golang.org/genproto/googleapis/iam/admin/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -48,8 +49,16 @@ func decodeServiceData(tu string, v []byte) (*map[string]interface{}, error) {
 		protoMessage = &audit.AuditLog{}
 	case "type.googleapis.com/google.iam.admin.v1.AuditData":
 		protoMessage = &adminpb.AuditData{}
+	case "type.googleapis.com/google.cloud.bigquery.logging.v1.AuditData":
+		protoMessage = &bigquerylogging.AuditData{}
 	default:
-		return nil, fmt.Errorf("unsupported type: %s", tu)
+		// For unsupported types, try to unmarshal as generic map[string]interface{}
+		var result map[string]interface{}
+		if err := json.Unmarshal(v, &result); err != nil {
+			// If we can't unmarshal as JSON, return nil, nil (no error)
+			return nil, nil
+		}
+		return &result, nil
 	}
 
 	// Unmarshal the protobuf payload into the appropriate struct

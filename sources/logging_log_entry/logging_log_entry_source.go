@@ -24,7 +24,7 @@ import (
 
 const (
 	LoggingLogEntrySourceIdentifier = "gcp_logging_log_entry"
-	DefaultLogEntriesPageSize       = 5000
+	DefaultLogEntriesPageSize       = 100000
 )
 
 // WithTableName is a custom option to pass the table name to the source
@@ -157,9 +157,15 @@ func (s *LoggingLogEntrySource) getClient(ctx context.Context, project string) (
 		return nil, fmt.Errorf("logging/apiv2.NewClient: %v", err)
 	}
 
+	// Get retry configuration to calculate timeout
+	backOff := s.getConfigurableBackoff()
+	// Set timeout to maximum delay + 1
+	timeout := backOff.Max + time.Millisecond
+
 	// Configure retry mechanism for ListLogEntries with configurable parameters
 	// Retry mechanism has been implemented as suggested by GCP: https://cloud.google.com/storage/docs/retry-strategy#customize-retries
 	client.CallOptions.ListLogEntries = []gax.CallOption{
+		gax.WithTimeout(timeout),
 		gax.WithRetry(func() gax.Retryer {
 			return gax.OnCodes(
 				[]codes.Code{
@@ -168,7 +174,7 @@ func (s *LoggingLogEntrySource) getClient(ctx context.Context, project string) (
 					codes.ResourceExhausted,
 					codes.Aborted,
 				},
-				s.getConfigurableBackoff(),
+				backOff,
 			)
 		}),
 	}
