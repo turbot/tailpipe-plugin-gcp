@@ -23,8 +23,11 @@ import (
 )
 
 const (
-	LoggingLogEntrySourceIdentifier = "gcp_logging_log_entry"
-	DefaultLogEntriesPageSize       = 100000
+	// LoggingLogEntrySourceIdentifier is the current (new) identifier for this source
+	LoggingLogEntrySourceIdentifier = "gcp_logging_api"
+	// DeprecatedLoggingLogEntrySourceIdentifier is the deprecated identifier (kept for backward compatibility)
+	DeprecatedLoggingLogEntrySourceIdentifier = "gcp_logging_log_entry"
+	DefaultLogEntriesPageSize                 = 100000
 )
 
 // WithTableName is a custom option to pass the table name to the source

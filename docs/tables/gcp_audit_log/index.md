@@ -164,7 +164,7 @@ connection "gcp" "my_project" {
 }
 
 partition "gcp_audit_log" "my_logs" {
-  source "logging_log_entry" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
   }
 }
@@ -176,7 +176,7 @@ Collect admin activity and data access audit logs for a project.
 
 ```hcl
 partition "gcp_audit_log" "my_logs_admin_data_access" {
-  source "logging_log_entry" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
     log_types = ["activity", "data_access"]
   }

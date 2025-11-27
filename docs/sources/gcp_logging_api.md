@@ -1,9 +1,9 @@
 ---
-title: "Source: gcp_logging_log_entry - Collect logs from GCP logging API"
+title: "Source: gcp_logging_api - Collect logs from GCP logging API"
 description: "Allows users to collect logs from Google Cloud Platform (GCP) logging API."
 ---
 
-# Source: gcp_logging_log_entry - Obtain logs from GCP logging API
+# Source: gcp_logging_api - Obtain logs from GCP logging API
 
 The Google Cloud Platform (GCP) logging API provides access to various types of logs for GCP services. It allows you to view and manage logs for your GCP projects, including logs for administrative actions, data access, system events, request logs, and more.
 
@@ -37,7 +37,7 @@ connection "gcp" "my_project" {
 }
 
 partition "gcp_audit_log" "my_logs" {
-  source "gcp_logging_log_entry" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
   }
 }
@@ -49,7 +49,7 @@ Collect admin activity and data access logs for a project.
 
 ```hcl
 partition "gcp_audit_log" "my_logs_admin_data_access" {
-  source "gcp_logging_log_entry" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
     log_types = ["activity", "data_access"]
   }
@@ -62,7 +62,7 @@ Collect only activity logs.
 
 ```hcl
 partition "gcp_audit_log" "my_activity_logs" {
-  source "gcp_logging_log_entry" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
     log_types = ["activity"]
   }
@@ -75,3 +75,8 @@ partition "gcp_audit_log" "my_activity_logs" {
 | ---------- | ---------------- | -------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | connection | `connection.gcp` | No       | `connection.gcp.default` | The [GCP connection](https://hub.tailpipe.io/plugins/turbot/gcp#connection-credentials) to use to connect to the GCP account.                                     |
 | log_types  | List(String)     | No       | []                       | A list of log types to retrieve. If no types are specified, all log types for the table are retrieved. Valid values: activity, data_access, system_event, policy. |
+
+## Deprecation Notice
+
+> **Note**: The source identifier `gcp_logging_log_entry` has been deprecated in favor of `gcp_logging_api`. The old identifier will continue to work but will log a deprecation warning. Please update your configurations to use `gcp_logging_api`. See the [deprecation guide](../../DEPRECATION_GUIDE.md) for migration instructions.
+

@@ -23,6 +23,9 @@ func init() {
 
 	// register sources
 	row_source.RegisterRowSource[*logging_log_entry.LoggingLogEntrySource]()
+	// Register deprecated source for backward compatibility
+	// This will be removed in a future version
+	row_source.RegisterRowSource[*logging_log_entry.DeprecatedLoggingLogEntrySource]()
 	row_source.RegisterRowSource[*storage_bucket.GcpStorageBucketSource]()
 }
 
