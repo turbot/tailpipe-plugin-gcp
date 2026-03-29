@@ -154,9 +154,9 @@ partition "gcp_audit_log" "my_logs_prefix" {
 }
 ```
 
-### Collect logs from audit logs API
+### Collect logs from logging API
 
-Collect audit logs stored in a Storage bucket that use the [default log file name format](https://hub.tailpipe.io/plugins/turbot/gcp/tables/gcp_audit_log#gcp_storage_bucket).
+Collect audit logs using the GCP logging API.
 
 ```hcl
 connection "gcp" "my_project" {
@@ -164,19 +164,19 @@ connection "gcp" "my_project" {
 }
 
 partition "gcp_audit_log" "my_logs" {
-  source "gcp_audit_log_api" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
   }
 }
 ```
 
-### Collect specific types of audit logs from audit logs API
+### Collect specific types of audit logs from logging API
 
 Collect admin activity and data access audit logs for a project.
 
 ```hcl
 partition "gcp_audit_log" "my_logs_admin_data_access" {
-  source "gcp_audit_log_api" {
+  source "gcp_logging_api" {
     connection = connection.gcp.my_project
     log_types = ["activity", "data_access"]
   }
@@ -205,6 +205,6 @@ partition "gcp_audit_log" "my_logs_severity" {
 
 This table sets the following defaults for the [gcp_storage_bucket](https://hub.tailpipe.io/plugins/turbot/gcp/sources/gcp_storage_bucket#arguments):
 
-| Argument      | Default |
-|--------------|---------|
-| file_layout   | `cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json` |
+| Argument    | Default                                                                                                                                                                     |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| file_layout | `cloudaudit.googleapis.com/%{DATA:type}/%{YEAR:year}/%{MONTHNUM:month}/%{MONTHDAY:day}/%{HOUR:hour}:%{MINUTE:minute}:%{SECOND:second}_%{DATA:end_time}_%{DATA:suffix}.json` |

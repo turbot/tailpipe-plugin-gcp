@@ -6,7 +6,7 @@ import (
 	"github.com/rs/xid"
 
 	"github.com/turbot/pipe-fittings/v2/utils"
-	"github.com/turbot/tailpipe-plugin-gcp/sources/audit_log_api"
+	logging_log_entry "github.com/turbot/tailpipe-plugin-gcp/sources/logging_log_entry"
 	"github.com/turbot/tailpipe-plugin-gcp/sources/storage_bucket"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source"
 	"github.com/turbot/tailpipe-plugin-sdk/artifact_source_config"
@@ -32,8 +32,14 @@ func (c *AuditLogTable) GetSourceMetadata() ([]*table.SourceMetadata[*AuditLog],
 
 	return []*table.SourceMetadata[*AuditLog]{
 		{
-			SourceName: audit_log_api.AuditLogAPISourceIdentifier,
+			SourceName: logging_log_entry.LoggingLogEntrySourceIdentifier,
 			Mapper:     &AuditLogMapper{},
+			// The options here are required to validate and pull the different types of logs per table.
+			// The NewLogTypeFilter function maps the supported log types for each table, as defined in
+			// logging_log_type_filter_map.go.
+			Options: []row_source.RowSourceOption{
+				logging_log_entry.WithTableName(AuditLogTableIdentifier),
+			},
 		},
 		{
 			SourceName: storage_bucket.GcpStorageBucketSourceIdentifier,

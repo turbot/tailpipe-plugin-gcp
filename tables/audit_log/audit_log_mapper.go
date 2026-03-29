@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
-	"cloud.google.com/go/logging"
+	loggingpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"google.golang.org/genproto/googleapis/cloud/audit"
+	bigquerylogging "google.golang.org/genproto/googleapis/cloud/bigquery/logging/v1"
 	adminpb "google.golang.org/genproto/googleapis/iam/admin/v1"
-	loggingpb "google.golang.org/genproto/googleapis/iam/v1/logging"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -30,7 +31,7 @@ func (m *AuditLogMapper) Map(_ context.Context, a any, _ ...mappers.MapOption[*A
 	switch v := a.(type) {
 	case string:
 		return mapFromBucketJson([]byte(v))
-	case logging.Entry:
+	case *loggingpb.LogEntry:
 		return mapFromSDKType(v)
 	case []byte:
 		return mapFromBucketJson(v)
@@ -45,11 +46,19 @@ func decodeServiceData(tu string, v []byte) (*map[string]interface{}, error) {
 
 	switch tu {
 	case "type.googleapis.com/google.iam.v1.logging.AuditData":
-		protoMessage = &loggingpb.AuditData{}
+		protoMessage = &audit.AuditLog{}
 	case "type.googleapis.com/google.iam.admin.v1.AuditData":
 		protoMessage = &adminpb.AuditData{}
+	case "type.googleapis.com/google.cloud.bigquery.logging.v1.AuditData":
+		protoMessage = &bigquerylogging.AuditData{}
 	default:
-		return nil, fmt.Errorf("unsupported type: %s", tu)
+		// For unsupported types, try to unmarshal as generic map[string]interface{}
+		var result map[string]interface{}
+		if err := json.Unmarshal(v, &result); err != nil {
+			// If we can't unmarshal as JSON, return nil, nil (no error)
+			return nil, nil
+		}
+		return &result, nil
 	}
 
 	// Unmarshal the protobuf payload into the appropriate struct
@@ -72,18 +81,50 @@ func decodeServiceData(tu string, v []byte) (*map[string]interface{}, error) {
 	return &result, nil
 }
 
-func mapFromSDKType(item logging.Entry) (*AuditLog, error) {
+func mapFromSDKType(item *loggingpb.LogEntry) (*AuditLog, error) {
 	row := NewAuditLog()
-	row.Timestamp = item.Timestamp
-	row.LogName = item.LogName
-	row.InsertId = item.InsertID
-	row.Severity = item.Severity.String()
-	row.Trace = item.Trace
-	row.TraceSampled = item.TraceSampled
-	row.SpanId = item.SpanID
+	row.Timestamp = item.GetTimestamp().AsTime()
+
+	// Decode the log name to replace any escaped characters (e.g., "%2F" → "/").
+	// This ensures the log name matches the format shown in the GCP Console and
+	// is easier to read and work with in query results.
+	decodedLogName, err := url.QueryUnescape(item.GetLogName())
+	if err != nil {
+		return nil, fmt.Errorf("error decoding log name: %w", err)
+	}
+	row.LogName = decodedLogName
+	row.InsertId = item.GetInsertId()
+	row.Severity = item.GetSeverity().String()
+	row.Trace = item.GetTrace()
+	row.TraceSampled = item.GetTraceSampled()
+	row.SpanId = item.GetSpanId()
 
 	// payload is special in this case as it's the core of the actual audit log, so it's properties are moved to top-level columns
-	if payload, ok := item.Payload.(*audit.AuditLog); ok {
+	// Try to get the audit log from ProtoPayload first (GAPIC client), then fall back to JsonPayload (logadmin client)
+	var payload *audit.AuditLog
+
+	// Check ProtoPayload first (GAPIC client)
+	if protoPayload := item.GetProtoPayload(); protoPayload != nil {
+		auditLog := &audit.AuditLog{}
+		if err := proto.Unmarshal(protoPayload.Value, auditLog); err == nil {
+			payload = auditLog
+		}
+	}
+
+	// Fall back to JsonPayload (logadmin client)
+	if payload == nil {
+		if jsonPayload := item.GetJsonPayload(); jsonPayload != nil {
+			if m := jsonPayload.AsMap(); m != nil {
+				if v, exists := m["protoPayload"]; exists {
+					if protoPayloadMap, ok := v.(*audit.AuditLog); ok {
+						payload = protoPayloadMap
+					}
+				}
+			}
+		}
+	}
+
+	if payload != nil {
 		row.ServiceName = &payload.ServiceName
 		row.MethodName = &payload.MethodName
 		row.ResourceName = &payload.ResourceName
@@ -215,21 +256,22 @@ func mapFromSDKType(item logging.Entry) (*AuditLog, error) {
 	}
 
 	// http request
-	if item.HTTPRequest != nil {
+	if item.GetHttpRequest() != nil {
+		httpReq := item.GetHttpRequest()
 		row.HttpRequest = &AuditLogHttpRequest{
-			Method:                         item.HTTPRequest.Request.Method,
-			Url:                            item.HTTPRequest.Request.URL.String(),
-			RequestHeaders:                 item.HTTPRequest.Request.Header,
-			RequestSize:                    item.HTTPRequest.RequestSize,
-			Status:                         item.HTTPRequest.Status,
-			ResponseSize:                   item.HTTPRequest.ResponseSize,
-			LocalIp:                        item.HTTPRequest.LocalIP,
-			RemoteIp:                       item.HTTPRequest.RemoteIP,
-			Latency:                        utils.HumanizeDuration(item.HTTPRequest.Latency),
-			CacheHit:                       item.HTTPRequest.CacheHit,
-			CacheLookup:                    item.HTTPRequest.CacheLookup,
-			CacheValidatedWithOriginServer: item.HTTPRequest.CacheValidatedWithOriginServer,
-			CacheFillBytes:                 item.HTTPRequest.CacheFillBytes,
+			Method:                         httpReq.GetRequestMethod(),
+			Url:                            httpReq.GetRequestUrl(),
+			RequestHeaders:                 nil, // Not available: google.cloud.audit.HttpRequest does not include request headers. There is currently no alternative way to obtain this information from the audit log entry.
+			RequestSize:                    httpReq.GetRequestSize(),
+			Status:                         int(httpReq.GetStatus()),
+			ResponseSize:                   httpReq.GetResponseSize(),
+			LocalIp:                        "", // Not available in protobuf HttpRequest, use ServerIp instead
+			RemoteIp:                       httpReq.GetRemoteIp(),
+			Latency:                        utils.HumanizeDuration(httpReq.GetLatency().AsDuration()),
+			CacheHit:                       httpReq.GetCacheHit(),
+			CacheLookup:                    httpReq.GetCacheLookup(),
+			CacheValidatedWithOriginServer: httpReq.GetCacheValidatedWithOriginServer(),
+			CacheFillBytes:                 httpReq.GetCacheFillBytes(),
 		}
 	}
 
